@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+pymongo
+bcrypt
+python-jose[cryptography]
+email-validator
+opencv-python-headless
+numpy
+pillow
+torch
+torchvision
+scikit-learn
