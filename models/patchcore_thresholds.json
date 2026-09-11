@@ -1,0 +1,795 @@
+{
+    "method": "PatchCore Multi-Scale ResNet18",
+    "description": "Category-specific anomaly thresholds calibrated from MVTec AD GOOD test images.",
+    "configuration": {
+        "good_percentile": 95.0,
+        "threshold_margin": 0.005
+    },
+    "categories": {
+        "bottle": {
+            "threshold": 0.079466,
+            "good": {
+                "count": 19,
+                "min": 0.038277,
+                "max": 0.092124,
+                "average": 0.054933,
+                "median": 0.056363,
+                "percentile_95": 0.074466,
+                "percentile_99": 0.088592,
+                "correct_normal": 18,
+                "incorrect_defect": 1,
+                "accuracy": 94.74
+            },
+            "defect": {
+                "count": 59,
+                "min": 0.129104,
+                "max": 0.460586,
+                "average": 0.308258,
+                "median": 0.327617,
+                "correct_detected": 59,
+                "missed": 0,
+                "accuracy": 100.0
+            },
+            "overall_accuracy": 98.72,
+            "defect_types": {
+                "broken_large": {
+                    "count": 19,
+                    "average_score": 0.350601,
+                    "detected": 19
+                },
+                "broken_small": {
+                    "count": 20,
+                    "average_score": 0.306911,
+                    "detected": 20
+                },
+                "contamination": {
+                    "count": 20,
+                    "average_score": 0.269379,
+                    "detected": 20
+                }
+            }
+        },
+        "cable": {
+            "threshold": 0.209822,
+            "good": {
+                "count": 58,
+                "min": 0.133021,
+                "max": 0.235128,
+                "average": 0.17143,
+                "median": 0.168208,
+                "percentile_95": 0.204822,
+                "percentile_99": 0.223032,
+                "correct_normal": 55,
+                "incorrect_defect": 3,
+                "accuracy": 94.83
+            },
+            "defect": {
+                "count": 92,
+                "min": 0.18474,
+                "max": 0.483841,
+                "average": 0.302964,
+                "median": 0.305249,
+                "correct_detected": 86,
+                "missed": 6,
+                "accuracy": 93.48
+            },
+            "overall_accuracy": 94.0,
+            "defect_types": {
+                "bent_wire": {
+                    "count": 13,
+                    "average_score": 0.374317,
+                    "detected": 13
+                },
+                "cable_swap": {
+                    "count": 12,
+                    "average_score": 0.224776,
+                    "detected": 9
+                },
+                "combined": {
+                    "count": 11,
+                    "average_score": 0.337517,
+                    "detected": 11
+                },
+                "cut_inner_insulation": {
+                    "count": 14,
+                    "average_score": 0.288976,
+                    "detected": 14
+                },
+                "cut_outer_insulation": {
+                    "count": 10,
+                    "average_score": 0.307343,
+                    "detected": 10
+                },
+                "missing_cable": {
+                    "count": 12,
+                    "average_score": 0.382405,
+                    "detected": 12
+                },
+                "missing_wire": {
+                    "count": 10,
+                    "average_score": 0.21983,
+                    "detected": 7
+                },
+                "poke_insulation": {
+                    "count": 10,
+                    "average_score": 0.269031,
+                    "detected": 10
+                }
+            }
+        },
+        "capsule": {
+            "threshold": 0.123271,
+            "good": {
+                "count": 23,
+                "min": 0.025361,
+                "max": 0.14098,
+                "average": 0.053512,
+                "median": 0.042916,
+                "percentile_95": 0.118271,
+                "percentile_99": 0.136797,
+                "correct_normal": 22,
+                "incorrect_defect": 1,
+                "accuracy": 95.65
+            },
+            "defect": {
+                "count": 109,
+                "min": 0.037598,
+                "max": 0.41533,
+                "average": 0.132269,
+                "median": 0.099997,
+                "correct_detected": 41,
+                "missed": 68,
+                "accuracy": 37.61
+            },
+            "overall_accuracy": 47.73,
+            "defect_types": {
+                "crack": {
+                    "count": 23,
+                    "average_score": 0.166147,
+                    "detected": 13
+                },
+                "faulty_imprint": {
+                    "count": 22,
+                    "average_score": 0.093182,
+                    "detected": 2
+                },
+                "poke": {
+                    "count": 21,
+                    "average_score": 0.107687,
+                    "detected": 5
+                },
+                "scratch": {
+                    "count": 23,
+                    "average_score": 0.090094,
+                    "detected": 2
+                },
+                "squeeze": {
+                    "count": 20,
+                    "average_score": 0.210615,
+                    "detected": 19
+                }
+            }
+        },
+        "carpet": {
+            "threshold": 0.106577,
+            "good": {
+                "count": 28,
+                "min": 0.075531,
+                "max": 0.110066,
+                "average": 0.087817,
+                "median": 0.087061,
+                "percentile_95": 0.101577,
+                "percentile_99": 0.108013,
+                "correct_normal": 27,
+                "incorrect_defect": 1,
+                "accuracy": 96.43
+            },
+            "defect": {
+                "count": 89,
+                "min": 0.085641,
+                "max": 0.379126,
+                "average": 0.230124,
+                "median": 0.235382,
+                "correct_detected": 84,
+                "missed": 5,
+                "accuracy": 94.38
+            },
+            "overall_accuracy": 94.87,
+            "defect_types": {
+                "color": {
+                    "count": 19,
+                    "average_score": 0.197066,
+                    "detected": 19
+                },
+                "cut": {
+                    "count": 17,
+                    "average_score": 0.267746,
+                    "detected": 17
+                },
+                "hole": {
+                    "count": 17,
+                    "average_score": 0.248162,
+                    "detected": 16
+                },
+                "metal_contamination": {
+                    "count": 17,
+                    "average_score": 0.194435,
+                    "detected": 15
+                },
+                "thread": {
+                    "count": 19,
+                    "average_score": 0.245312,
+                    "detected": 17
+                }
+            }
+        },
+        "grid": {
+            "threshold": 0.112386,
+            "good": {
+                "count": 21,
+                "min": 0.062378,
+                "max": 0.138803,
+                "average": 0.083431,
+                "median": 0.079565,
+                "percentile_95": 0.107386,
+                "percentile_99": 0.13252,
+                "correct_normal": 20,
+                "incorrect_defect": 1,
+                "accuracy": 95.24
+            },
+            "defect": {
+                "count": 57,
+                "min": 0.073745,
+                "max": 0.260818,
+                "average": 0.126974,
+                "median": 0.120174,
+                "correct_detected": 32,
+                "missed": 25,
+                "accuracy": 56.14
+            },
+            "overall_accuracy": 66.67,
+            "defect_types": {
+                "bent": {
+                    "count": 12,
+                    "average_score": 0.118507,
+                    "detected": 6
+                },
+                "broken": {
+                    "count": 12,
+                    "average_score": 0.1506,
+                    "detected": 9
+                },
+                "glue": {
+                    "count": 11,
+                    "average_score": 0.098408,
+                    "detected": 3
+                },
+                "metal_contamination": {
+                    "count": 11,
+                    "average_score": 0.129418,
+                    "detected": 7
+                },
+                "thread": {
+                    "count": 11,
+                    "average_score": 0.136559,
+                    "detected": 7
+                }
+            }
+        },
+        "hazelnut": {
+            "threshold": 0.231549,
+            "good": {
+                "count": 40,
+                "min": 0.156601,
+                "max": 0.23959,
+                "average": 0.197932,
+                "median": 0.197117,
+                "percentile_95": 0.226549,
+                "percentile_99": 0.235027,
+                "correct_normal": 39,
+                "incorrect_defect": 1,
+                "accuracy": 97.5
+            },
+            "defect": {
+                "count": 70,
+                "min": 0.246297,
+                "max": 0.423145,
+                "average": 0.348835,
+                "median": 0.353853,
+                "correct_detected": 70,
+                "missed": 0,
+                "accuracy": 100.0
+            },
+            "overall_accuracy": 99.09,
+            "defect_types": {
+                "crack": {
+                    "count": 18,
+                    "average_score": 0.344951,
+                    "detected": 18
+                },
+                "cut": {
+                    "count": 17,
+                    "average_score": 0.332407,
+                    "detected": 17
+                },
+                "hole": {
+                    "count": 18,
+                    "average_score": 0.375224,
+                    "detected": 18
+                },
+                "print": {
+                    "count": 17,
+                    "average_score": 0.341433,
+                    "detected": 17
+                }
+            }
+        },
+        "leather": {
+            "threshold": 0.101448,
+            "good": {
+                "count": 32,
+                "min": 0.067989,
+                "max": 0.116516,
+                "average": 0.083609,
+                "median": 0.08287,
+                "percentile_95": 0.096448,
+                "percentile_99": 0.110709,
+                "correct_normal": 31,
+                "incorrect_defect": 1,
+                "accuracy": 96.88
+            },
+            "defect": {
+                "count": 92,
+                "min": 0.153497,
+                "max": 0.482349,
+                "average": 0.300162,
+                "median": 0.297274,
+                "correct_detected": 92,
+                "missed": 0,
+                "accuracy": 100.0
+            },
+            "overall_accuracy": 99.19,
+            "defect_types": {
+                "color": {
+                    "count": 19,
+                    "average_score": 0.263878,
+                    "detected": 19
+                },
+                "cut": {
+                    "count": 19,
+                    "average_score": 0.271412,
+                    "detected": 19
+                },
+                "fold": {
+                    "count": 17,
+                    "average_score": 0.297788,
+                    "detected": 17
+                },
+                "glue": {
+                    "count": 19,
+                    "average_score": 0.369328,
+                    "detected": 19
+                },
+                "poke": {
+                    "count": 18,
+                    "average_score": 0.298043,
+                    "detected": 18
+                }
+            }
+        },
+        "metal_nut": {
+            "threshold": 0.181667,
+            "good": {
+                "count": 22,
+                "min": 0.116279,
+                "max": 0.188867,
+                "average": 0.145147,
+                "median": 0.141927,
+                "percentile_95": 0.176667,
+                "percentile_99": 0.186362,
+                "correct_normal": 21,
+                "incorrect_defect": 1,
+                "accuracy": 95.45
+            },
+            "defect": {
+                "count": 93,
+                "min": 0.144534,
+                "max": 0.395056,
+                "average": 0.288835,
+                "median": 0.304816,
+                "correct_detected": 90,
+                "missed": 3,
+                "accuracy": 96.77
+            },
+            "overall_accuracy": 96.52,
+            "defect_types": {
+                "bent": {
+                    "count": 25,
+                    "average_score": 0.291574,
+                    "detected": 25
+                },
+                "color": {
+                    "count": 22,
+                    "average_score": 0.257297,
+                    "detected": 21
+                },
+                "flip": {
+                    "count": 23,
+                    "average_score": 0.33293,
+                    "detected": 23
+                },
+                "scratch": {
+                    "count": 23,
+                    "average_score": 0.271931,
+                    "detected": 21
+                }
+            }
+        },
+        "pill": {
+            "threshold": 0.180071,
+            "good": {
+                "count": 26,
+                "min": 0.129541,
+                "max": 0.207238,
+                "average": 0.146404,
+                "median": 0.140822,
+                "percentile_95": 0.175071,
+                "percentile_99": 0.199274,
+                "correct_normal": 25,
+                "incorrect_defect": 1,
+                "accuracy": 96.15
+            },
+            "defect": {
+                "count": 141,
+                "min": 0.116915,
+                "max": 0.312395,
+                "average": 0.201007,
+                "median": 0.191411,
+                "correct_detected": 93,
+                "missed": 48,
+                "accuracy": 65.96
+            },
+            "overall_accuracy": 70.66,
+            "defect_types": {
+                "color": {
+                    "count": 25,
+                    "average_score": 0.182582,
+                    "detected": 11
+                },
+                "combined": {
+                    "count": 17,
+                    "average_score": 0.227719,
+                    "detected": 14
+                },
+                "contamination": {
+                    "count": 21,
+                    "average_score": 0.217558,
+                    "detected": 16
+                },
+                "crack": {
+                    "count": 26,
+                    "average_score": 0.174449,
+                    "detected": 11
+                },
+                "faulty_imprint": {
+                    "count": 19,
+                    "average_score": 0.20806,
+                    "detected": 16
+                },
+                "pill_type": {
+                    "count": 9,
+                    "average_score": 0.267177,
+                    "detected": 9
+                },
+                "scratch": {
+                    "count": 24,
+                    "average_score": 0.185169,
+                    "detected": 16
+                }
+            }
+        },
+        "screw": {
+            "threshold": 0.160719,
+            "good": {
+                "count": 41,
+                "min": 0.098093,
+                "max": 0.181388,
+                "average": 0.124305,
+                "median": 0.119464,
+                "percentile_95": 0.155719,
+                "percentile_99": 0.180263,
+                "correct_normal": 39,
+                "incorrect_defect": 2,
+                "accuracy": 95.12
+            },
+            "defect": {
+                "count": 119,
+                "min": 0.090341,
+                "max": 0.280154,
+                "average": 0.141284,
+                "median": 0.137483,
+                "correct_detected": 25,
+                "missed": 94,
+                "accuracy": 21.01
+            },
+            "overall_accuracy": 40.0,
+            "defect_types": {
+                "manipulated_front": {
+                    "count": 24,
+                    "average_score": 0.138445,
+                    "detected": 3
+                },
+                "scratch_head": {
+                    "count": 24,
+                    "average_score": 0.132184,
+                    "detected": 2
+                },
+                "scratch_neck": {
+                    "count": 25,
+                    "average_score": 0.166207,
+                    "detected": 14
+                },
+                "thread_side": {
+                    "count": 23,
+                    "average_score": 0.133258,
+                    "detected": 4
+                },
+                "thread_top": {
+                    "count": 23,
+                    "average_score": 0.134679,
+                    "detected": 2
+                }
+            }
+        },
+        "tile": {
+            "threshold": 0.194956,
+            "good": {
+                "count": 33,
+                "min": 0.145774,
+                "max": 0.203862,
+                "average": 0.16804,
+                "median": 0.167938,
+                "percentile_95": 0.189956,
+                "percentile_99": 0.200861,
+                "correct_normal": 32,
+                "incorrect_defect": 1,
+                "accuracy": 96.97
+            },
+            "defect": {
+                "count": 84,
+                "min": 0.173301,
+                "max": 0.450479,
+                "average": 0.319592,
+                "median": 0.320566,
+                "correct_detected": 83,
+                "missed": 1,
+                "accuracy": 98.81
+            },
+            "overall_accuracy": 98.29,
+            "defect_types": {
+                "crack": {
+                    "count": 17,
+                    "average_score": 0.407915,
+                    "detected": 17
+                },
+                "glue_strip": {
+                    "count": 18,
+                    "average_score": 0.356451,
+                    "detected": 18
+                },
+                "gray_stroke": {
+                    "count": 16,
+                    "average_score": 0.241792,
+                    "detected": 15
+                },
+                "oil": {
+                    "count": 18,
+                    "average_score": 0.31991,
+                    "detected": 18
+                },
+                "rough": {
+                    "count": 15,
+                    "average_score": 0.257865,
+                    "detected": 15
+                }
+            }
+        },
+        "toothbrush": {
+            "threshold": 0.198892,
+            "good": {
+                "count": 12,
+                "min": 0.071411,
+                "max": 0.201728,
+                "average": 0.105152,
+                "median": 0.082901,
+                "percentile_95": 0.193892,
+                "percentile_99": 0.200161,
+                "correct_normal": 11,
+                "incorrect_defect": 1,
+                "accuracy": 91.67
+            },
+            "defect": {
+                "count": 30,
+                "min": 0.085274,
+                "max": 0.443301,
+                "average": 0.262888,
+                "median": 0.22786,
+                "correct_detected": 16,
+                "missed": 14,
+                "accuracy": 53.33
+            },
+            "overall_accuracy": 64.29,
+            "defect_types": {
+                "defective": {
+                    "count": 30,
+                    "average_score": 0.262888,
+                    "detected": 16
+                }
+            }
+        },
+        "transistor": {
+            "threshold": 0.167431,
+            "good": {
+                "count": 60,
+                "min": 0.097337,
+                "max": 0.170686,
+                "average": 0.130902,
+                "median": 0.130905,
+                "percentile_95": 0.162431,
+                "percentile_99": 0.169047,
+                "correct_normal": 58,
+                "incorrect_defect": 2,
+                "accuracy": 96.67
+            },
+            "defect": {
+                "count": 40,
+                "min": 0.111659,
+                "max": 0.42489,
+                "average": 0.252543,
+                "median": 0.242692,
+                "correct_detected": 38,
+                "missed": 2,
+                "accuracy": 95.0
+            },
+            "overall_accuracy": 96.0,
+            "defect_types": {
+                "bent_lead": {
+                    "count": 10,
+                    "average_score": 0.237668,
+                    "detected": 10
+                },
+                "cut_lead": {
+                    "count": 10,
+                    "average_score": 0.207378,
+                    "detected": 10
+                },
+                "damaged_case": {
+                    "count": 10,
+                    "average_score": 0.276372,
+                    "detected": 10
+                },
+                "misplaced": {
+                    "count": 10,
+                    "average_score": 0.288753,
+                    "detected": 8
+                }
+            }
+        },
+        "wood": {
+            "threshold": 0.226569,
+            "good": {
+                "count": 19,
+                "min": 0.105592,
+                "max": 0.224762,
+                "average": 0.153716,
+                "median": 0.140008,
+                "percentile_95": 0.221569,
+                "percentile_99": 0.224124,
+                "correct_normal": 19,
+                "incorrect_defect": 0,
+                "accuracy": 100.0
+            },
+            "defect": {
+                "count": 60,
+                "min": 0.1901,
+                "max": 0.4547,
+                "average": 0.341818,
+                "median": 0.349697,
+                "correct_detected": 56,
+                "missed": 4,
+                "accuracy": 93.33
+            },
+            "overall_accuracy": 94.94,
+            "defect_types": {
+                "color": {
+                    "count": 8,
+                    "average_score": 0.366348,
+                    "detected": 8
+                },
+                "combined": {
+                    "count": 11,
+                    "average_score": 0.388965,
+                    "detected": 11
+                },
+                "hole": {
+                    "count": 10,
+                    "average_score": 0.318044,
+                    "detected": 9
+                },
+                "liquid": {
+                    "count": 10,
+                    "average_score": 0.385192,
+                    "detected": 10
+                },
+                "scratch": {
+                    "count": 21,
+                    "average_score": 0.298445,
+                    "detected": 18
+                }
+            }
+        },
+        "zipper": {
+            "threshold": 0.120682,
+            "good": {
+                "count": 32,
+                "min": 0.045521,
+                "max": 0.163769,
+                "average": 0.075699,
+                "median": 0.06961,
+                "percentile_95": 0.115682,
+                "percentile_99": 0.152852,
+                "correct_normal": 30,
+                "incorrect_defect": 2,
+                "accuracy": 93.75
+            },
+            "defect": {
+                "count": 119,
+                "min": 0.067698,
+                "max": 0.413812,
+                "average": 0.177689,
+                "median": 0.160167,
+                "correct_detected": 94,
+                "missed": 25,
+                "accuracy": 78.99
+            },
+            "overall_accuracy": 82.12,
+            "defect_types": {
+                "broken_teeth": {
+                    "count": 19,
+                    "average_score": 0.155232,
+                    "detected": 12
+                },
+                "combined": {
+                    "count": 16,
+                    "average_score": 0.213818,
+                    "detected": 14
+                },
+                "fabric_border": {
+                    "count": 17,
+                    "average_score": 0.279024,
+                    "detected": 17
+                },
+                "fabric_interior": {
+                    "count": 16,
+                    "average_score": 0.161031,
+                    "detected": 15
+                },
+                "rough": {
+                    "count": 17,
+                    "average_score": 0.167336,
+                    "detected": 15
+                },
+                "split_teeth": {
+                    "count": 18,
+                    "average_score": 0.138205,
+                    "detected": 13
+                },
+                "squeezed_teeth": {
+                    "count": 16,
+                    "average_score": 0.132636,
+                    "detected": 8
+                }
+            }
+        }
+    }
+}

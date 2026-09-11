@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Dataset
+dataset/
+
+# Uploaded inspection images
+uploads/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large AI model artifacts
+models/feature_banks/
+models/*.pth
+models/*.pt
+models/*.bin
