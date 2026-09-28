@@ -1,30 +1,53 @@
-/* ================================
+/* ============================================================
    GLOBAL RESET
-================================ */
+   ============================================================ */
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+html {
   margin: 0;
   padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-width: 320px;
+  min-height: 100vh;
+
+  font-family:
+    Inter,
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  background: #f4f8fc;
+  color: #172033;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
   width: 100%;
   min-height: 100vh;
 }
 
-body {
-  min-width: 320px;
-  font-family: Inter, Arial, Helvetica, sans-serif;
-  background: #f4f8fc;
-  color: #172033;
-}
+/* ============================================================
+   ELEMENT DEFAULTS
+   ============================================================ */
 
 button,
 input,
-select {
+select,
+textarea {
   font-family: inherit;
 }
 
@@ -32,6 +55,58 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  outline: none;
+}
+
 a {
+  color: inherit;
   text-decoration: none;
+}
+
+/* ============================================================
+   IMAGE DEFAULTS
+   ============================================================ */
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* ============================================================
+   HEADINGS / TEXT
+   ============================================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-top: 0;
+}
+
+/* ============================================================
+   SCROLLING
+   ============================================================ */
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   APP BASE
+   ============================================================ */
+
+.app-container {
+  width: 100%;
+  min-height: 100vh;
 }

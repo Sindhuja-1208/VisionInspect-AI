@@ -3,463 +3,835 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-
-from app.ai.autoencoder import ConvAutoencoder
+import torch.nn.functional as F
+from torchvision import models
 
 
 # ============================================================
-# PROJECT PATHS
+# PATHS
 # ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 MODEL_DIR = PROJECT_ROOT / "models"
-THRESHOLD_DIR = MODEL_DIR / "thresholds"
+FEATURE_BANK_DIR = MODEL_DIR / "feature_banks"
 
 IMAGE_SIZE = 224
-
-
-# ============================================================
-# SUPPORTED CATEGORIES
-# ============================================================
-
-CATEGORIES = [
-    "bottle",
-    "cable",
-    "capsule",
-    "carpet",
-    "grid",
-    "hazelnut",
-    "leather",
-    "metal_nut",
-    "pill",
-    "screw",
-    "tile",
-    "toothbrush",
-    "transistor",
-    "wood",
-    "zipper",
-]
 
 
 # ============================================================
 # DEVICE
 # ============================================================
 
-device = torch.device(
+DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
 
 # ============================================================
-# MODEL CACHE
+# RESNET18 MULTI-SCALE FEATURE EXTRACTOR
 # ============================================================
 
-_model_cache = {}
+class ResNet18FeatureExtractor:
+
+    def __init__(self):
+
+        print(
+            f"Loading multi-scale ResNet18 feature extractor "
+            f"on {DEVICE}..."
+        )
+
+        weights = models.ResNet18_Weights.DEFAULT
+
+        backbone = models.resnet18(
+            weights=weights
+        )
+
+        backbone = backbone.to(DEVICE)
+
+        backbone.eval()
+
+        # ----------------------------------------------------
+        # Multi-scale layers
+        #
+        # layer2 -> 128 channels, approximately 28 x 28
+        # layer3 -> 256 channels, approximately 14 x 14
+        #
+        # layer2 is resized to 14 x 14.
+        #
+        # Final feature map:
+        #
+        # [1, 384, 14, 14]
+        #
+        # 196 spatial patches
+        # ----------------------------------------------------
+
+        self.conv1 = backbone.conv1
+        self.bn1 = backbone.bn1
+        self.relu = backbone.relu
+        self.maxpool = backbone.maxpool
+
+        self.layer1 = backbone.layer1
+        self.layer2 = backbone.layer2
+        self.layer3 = backbone.layer3
+
+        self.device = DEVICE
+
+        # Freeze extractor
+
+        for module in [
+            self.conv1,
+            self.bn1,
+            self.layer1,
+            self.layer2,
+            self.layer3
+        ]:
+
+            for parameter in module.parameters():
+
+                parameter.requires_grad = False
+
+        print(
+            "Multi-scale ResNet18 feature extractor "
+            "loaded successfully."
+        )
+
+
+    # ========================================================
+    # FEATURE EXTRACTION
+    # ========================================================
+
+    @torch.no_grad()
+    def extract_features(
+        self,
+        image_tensor
+    ):
+
+        x = self.conv1(
+            image_tensor
+        )
+
+        x = self.bn1(
+            x
+        )
+
+        x = self.relu(
+            x
+        )
+
+        x = self.maxpool(
+            x
+        )
+
+        x = self.layer1(
+            x
+        )
+
+        # ----------------------------------------------------
+        # Local features
+        # ----------------------------------------------------
+
+        layer2_features = self.layer2(
+            x
+        )
+
+        # ----------------------------------------------------
+        # Deeper semantic features
+        # ----------------------------------------------------
+
+        layer3_features = self.layer3(
+            layer2_features
+        )
+
+        # ----------------------------------------------------
+        # Resize layer2 -> layer3 resolution
+        # ----------------------------------------------------
+
+        layer2_resized = F.interpolate(
+            layer2_features,
+            size=layer3_features.shape[-2:],
+            mode="bilinear",
+            align_corners=False
+        )
+
+        # ----------------------------------------------------
+        # Combine local + semantic features
+        # ----------------------------------------------------
+
+        combined_features = torch.cat(
+            [
+                layer2_resized,
+                layer3_features
+            ],
+            dim=1
+        )
+
+        return combined_features
+
+
+# ============================================================
+# GLOBAL FEATURE EXTRACTOR
+# ============================================================
+
+FEATURE_EXTRACTOR = ResNet18FeatureExtractor()
 
 
 # ============================================================
 # IMAGE PREPROCESSING
 # ============================================================
 
-def preprocess_image(image_path: str):
-    """
-    Read image, convert to RGB, resize to 224x224,
-    normalize to [0, 1], and convert to PyTorch tensor.
-    """
+def preprocess_image(
+    image_path: str
+):
 
-    image = cv2.imread(image_path)
+    image = cv2.imread(
+        str(image_path)
+    )
 
     if image is None:
+
         raise ValueError(
             f"Unable to read image: {image_path}"
         )
+
+    # BGR -> RGB
 
     image = cv2.cvtColor(
         image,
         cv2.COLOR_BGR2RGB
     )
 
+    # Resize
+
     image = cv2.resize(
         image,
-        (IMAGE_SIZE, IMAGE_SIZE),
+        (
+            IMAGE_SIZE,
+            IMAGE_SIZE
+        ),
         interpolation=cv2.INTER_AREA
     )
 
-    image = image.astype(
-        np.float32
-    ) / 255.0
+    # Convert to float
+
+    image = (
+        image.astype(
+            np.float32
+        ) / 255.0
+    )
+
+    # ImageNet normalization
+
+    mean = np.array(
+        [
+            0.485,
+            0.456,
+            0.406
+        ],
+        dtype=np.float32
+    )
+
+    std = np.array(
+        [
+            0.229,
+            0.224,
+            0.225
+        ],
+        dtype=np.float32
+    )
+
+    image = (
+        image - mean
+    ) / std
+
+    # HWC -> CHW
 
     image = np.transpose(
         image,
-        (2, 0, 1)
+        (
+            2,
+            0,
+            1
+        )
     )
 
     tensor = torch.from_numpy(
         image
-    ).float()
+    ).unsqueeze(0)
 
-    return tensor.unsqueeze(0)
-
-
-# ============================================================
-# LOAD CATEGORY MODEL
-# ============================================================
-
-def load_model(category: str):
-
-    if category not in CATEGORIES:
-        raise ValueError(
-            f"Unsupported category: {category}"
-        )
-
-    if category in _model_cache:
-        return _model_cache[category]
-
-    model_path = (
-        MODEL_DIR /
-        f"{category}_autoencoder.pth"
+    tensor = tensor.to(
+        DEVICE
     )
 
-    if not model_path.exists():
-        raise FileNotFoundError(
-            f"Model not found for category "
-            f"'{category}': {model_path}"
-        )
-
-    model = ConvAutoencoder().to(device)
-
-    checkpoint = torch.load(
-        model_path,
-        map_location=device
-    )
-
-    model.load_state_dict(checkpoint)
-
-    model.eval()
-
-    _model_cache[category] = model
-
-    return model
+    return tensor
 
 
 # ============================================================
-# LOAD CATEGORY THRESHOLD
+# EXTRACT IMAGE FEATURES
 # ============================================================
 
-def load_threshold(category: str):
-
-    threshold_path = (
-        THRESHOLD_DIR /
-        f"{category}_threshold.txt"
-    )
-
-    if threshold_path.exists():
-
-        try:
-
-            return float(
-                threshold_path.read_text().strip()
-            )
-
-        except ValueError:
-            pass
-
-    # Fallback only.
-    # Proper category-specific thresholds
-    # should be generated using calibration.
-    return 0.076
-
-
-# ============================================================
-# CALCULATE ROBUST ANOMALY SCORE
-# ============================================================
-
-def calculate_anomaly_score(
-    image_path: str,
-    category: str
+def extract_image_features(
+    image_path: str
 ):
-
-    model = load_model(category)
 
     image_tensor = preprocess_image(
         image_path
-    ).to(device)
+    )
 
     with torch.no_grad():
 
-        reconstructed = model(
-            image_tensor
+        feature_map = (
+            FEATURE_EXTRACTOR.extract_features(
+                image_tensor
+            )
         )
 
-        # ----------------------------------------------------
-        # Pixel-level reconstruction error
-        # ----------------------------------------------------
+    return feature_map
 
-        error_map = torch.abs(
-            image_tensor - reconstructed
+
+# ============================================================
+# FEATURE MAP -> PATCHES
+# ============================================================
+
+def feature_map_to_patches(
+    feature_map
+):
+
+    """
+    Converts:
+
+        [1, C, H, W]
+
+    into:
+
+        [H*W, C]
+
+    Current expected shape:
+
+        [1, 384, 14, 14]
+
+    becomes:
+
+        [196, 384]
+    """
+
+    if feature_map.dim() != 4:
+
+        raise ValueError(
+            "Expected feature map with shape "
+            "[B, C, H, W]"
         )
 
-        # Convert RGB error into one spatial error map
-        spatial_error = torch.mean(
-            error_map,
-            dim=1
-        )
+    # Remove batch dimension
 
-        flat_error = spatial_error.flatten()
+    feature_map = feature_map.squeeze(
+        0
+    )
 
-        total_pixels = flat_error.numel()
+    # C,H,W -> H,W,C
 
-        # ----------------------------------------------------
-        # Global average error
-        # ----------------------------------------------------
+    feature_map = feature_map.permute(
+        1,
+        2,
+        0
+    )
 
-        mean_error = torch.mean(
-            spatial_error
-        ).item()
+    # H,W,C -> H*W,C
 
-        # ----------------------------------------------------
-        # Top 5% error
-        # ----------------------------------------------------
+    patches = feature_map.reshape(
+        -1,
+        feature_map.shape[-1]
+    )
 
-        top_5_count = max(
-            1,
-            int(total_pixels * 0.05)
-        )
-
-        top_5_errors = torch.topk(
-            flat_error,
-            top_5_count
-        ).values
-
-        top_5_error = torch.mean(
-            top_5_errors
-        ).item()
-
-        # ----------------------------------------------------
-        # Top 1% error
-        # ----------------------------------------------------
-
-        top_1_count = max(
-            1,
-            int(total_pixels * 0.01)
-        )
-
-        top_1_errors = torch.topk(
-            flat_error,
-            top_1_count
-        ).values
-
-        top_1_error = torch.mean(
-            top_1_errors
-        ).item()
-
-        # ----------------------------------------------------
-        # Top 0.5% error
-        #
-        # This focuses more strongly on localized defects.
-        # ----------------------------------------------------
-
-        top_05_count = max(
-            1,
-            int(total_pixels * 0.005)
-        )
-
-        top_05_errors = torch.topk(
-            flat_error,
-            top_05_count
-        ).values
-
-        top_05_error = torch.mean(
-            top_05_errors
-        ).item()
-
-        # ----------------------------------------------------
-        # High-error pixel ratio
-        #
-        # Measures how much of the image contains
-        # unusually high reconstruction error.
-        # ----------------------------------------------------
-
-        error_mean = torch.mean(
-            flat_error
-        )
-
-        error_std = torch.std(
-            flat_error
-        )
-
-        high_error_threshold = (
-            error_mean +
-            2.0 * error_std
-        )
-
-        high_error_pixels = (
-            flat_error >
-            high_error_threshold
-        ).float()
-
-        high_error_ratio = torch.mean(
-            high_error_pixels
-        ).item()
-
-        # ----------------------------------------------------
-        # Maximum error
-        # ----------------------------------------------------
-
-        max_error = torch.max(
-            flat_error
-        ).item()
+    return patches
 
 
-    # ========================================================
-    # ROBUST ANOMALY SCORE
-    # ========================================================
-    #
-    # Stronger focus on localized high-error regions.
-    #
-    # Mean error       -> overall reconstruction quality
-    # Top 5%           -> larger abnormal regions
-    # Top 1%           -> concentrated defects
-    # Top 0.5%         -> very localized defects
-    # High-error ratio -> amount of suspicious area
-    #
-    # ========================================================
+# ============================================================
+# FEATURE NORMALIZATION
+# ============================================================
 
-    anomaly_score = (
-        0.10 * mean_error
-        + 0.20 * top_5_error
-        + 0.25 * top_1_error
-        + 0.30 * top_05_error
-        + 0.10 * high_error_ratio
-        + 0.05 * max_error
+def normalize_features(
+    features
+):
+
+    norms = np.linalg.norm(
+        features,
+        axis=1,
+        keepdims=True
+    )
+
+    norms = np.maximum(
+        norms,
+        1e-12
+    )
+
+    return (
+        features / norms
     )
 
 
-    return {
-        "anomaly_score": float(
-            anomaly_score
-        ),
+# ============================================================
+# SAVE FEATURE BANK
+# ============================================================
 
-        "mean_error": float(
-            mean_error
-        ),
+def save_feature_bank(
+    category: str,
+    features: np.ndarray
+):
 
-        "top_5_error": float(
-            top_5_error
-        ),
+    category_dir = (
+        FEATURE_BANK_DIR / category
+    )
 
-        "top_1_error": float(
-            top_1_error
-        ),
+    category_dir.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
-        "top_05_error": float(
-            top_05_error
-        ),
+    feature_file = (
+        category_dir /
+        "features.npy"
+    )
 
-        "high_error_ratio": float(
-            high_error_ratio
-        ),
+    np.save(
+        feature_file,
+        features
+    )
 
-        "max_error": float(
-            max_error
+    return feature_file
+
+
+# ============================================================
+# LOAD FEATURE BANK
+# ============================================================
+
+def load_feature_bank(
+    category: str
+):
+
+    feature_file = (
+        FEATURE_BANK_DIR
+        / category
+        / "features.npy"
+    )
+
+    if not feature_file.exists():
+
+        raise FileNotFoundError(
+            f"Feature bank not found for "
+            f"category '{category}': "
+            f"{feature_file}"
         )
+
+    features = np.load(
+        feature_file
+    )
+
+    if features.ndim != 2:
+
+        raise ValueError(
+            f"Invalid feature bank shape: "
+            f"{features.shape}"
+        )
+
+    return features
+
+
+# ============================================================
+# PATCHCORE DISTANCE + LOCALIZATION
+# ============================================================
+
+def calculate_patchcore_score(
+    query_features: np.ndarray,
+    memory_bank: np.ndarray
+):
+
+    """
+    PatchCore-style nearest-neighbour
+    anomaly detection.
+
+    In addition to the global anomaly score,
+    this function now returns:
+
+        patch_distances
+        patch_anomaly_map
+        patch_grid_height
+        patch_grid_width
+
+    These values are used later to
+    generate an anomaly heatmap.
+    """
+
+    # --------------------------------------------------------
+    # Normalize
+    # --------------------------------------------------------
+
+    query_features = normalize_features(
+        query_features.astype(
+            np.float32
+        )
+    )
+
+    memory_bank = normalize_features(
+        memory_bank.astype(
+            np.float32
+        )
+    )
+
+    # --------------------------------------------------------
+    # Cosine similarity
+    # --------------------------------------------------------
+
+    similarities = (
+        query_features @
+        memory_bank.T
+    )
+
+    # --------------------------------------------------------
+    # Nearest normal patch
+    # --------------------------------------------------------
+
+    max_similarity = np.max(
+        similarities,
+        axis=1
+    )
+
+    # --------------------------------------------------------
+    # Cosine distance
+    # --------------------------------------------------------
+
+    distances = (
+        1.0 - max_similarity
+    )
+
+    distances = np.maximum(
+        distances,
+        0.0
+    )
+
+    # --------------------------------------------------------
+    # Patch grid
+    #
+    # Current feature extractor:
+    #
+    # 14 x 14 = 196 patches
+    # --------------------------------------------------------
+
+    number_of_patches = len(
+        distances
+    )
+
+    grid_size = int(
+        np.sqrt(
+            number_of_patches
+        )
+    )
+
+    if (
+        grid_size * grid_size
+        != number_of_patches
+    ):
+
+        raise ValueError(
+            "Patch count does not form "
+            f"a square grid: "
+            f"{number_of_patches}"
+        )
+
+    patch_grid_height = grid_size
+    patch_grid_width = grid_size
+
+    # --------------------------------------------------------
+    # ORIGINAL PATCH ANOMALY MAP
+    # --------------------------------------------------------
+
+    patch_anomaly_map = (
+        distances.reshape(
+            patch_grid_height,
+            patch_grid_width
+        )
+    )
+
+    # --------------------------------------------------------
+    # NORMALIZED PATCH ANOMALY MAP
+    #
+    # Used later for visualization.
+    # --------------------------------------------------------
+
+    map_min = float(
+        np.min(
+            patch_anomaly_map
+        )
+    )
+
+    map_max = float(
+        np.max(
+            patch_anomaly_map
+        )
+    )
+
+    if map_max - map_min > 1e-12:
+
+        normalized_anomaly_map = (
+            patch_anomaly_map - map_min
+        ) / (
+            map_max - map_min
+        )
+
+    else:
+
+        normalized_anomaly_map = (
+            np.zeros_like(
+                patch_anomaly_map
+            )
+        )
+
+    # --------------------------------------------------------
+    # Sort distances
+    # --------------------------------------------------------
+
+    sorted_distances = np.sort(
+        distances
+    )[::-1]
+
+    # --------------------------------------------------------
+    # Top 1%
+    # --------------------------------------------------------
+
+    top_count = max(
+        1,
+        int(
+            np.ceil(
+                number_of_patches *
+                0.01
+            )
+        )
+    )
+
+    top_distances = (
+        sorted_distances[
+            :top_count
+        ]
+    )
+
+    # --------------------------------------------------------
+    # Statistics
+    # --------------------------------------------------------
+
+    max_distance = float(
+        np.max(
+            distances
+        )
+    )
+
+    mean_distance = float(
+        np.mean(
+            distances
+        )
+    )
+
+    # Top 5%
+
+    top_5_count = max(
+        1,
+        int(
+            np.ceil(
+                number_of_patches *
+                0.05
+            )
+        )
+    )
+
+    top_5_distance = float(
+        np.mean(
+            sorted_distances[
+                :top_5_count
+            ]
+        )
+    )
+
+    # Top 1%
+
+    top_1_distance = float(
+        np.mean(
+            top_distances
+        )
+    )
+
+    # --------------------------------------------------------
+    # FINAL ANOMALY SCORE
+    # --------------------------------------------------------
+
+    anomaly_score = float(
+        0.65 * top_1_distance
+        +
+        0.25 * top_5_distance
+        +
+        0.10 * mean_distance
+    )
+
+    # --------------------------------------------------------
+    # RETURN
+    # --------------------------------------------------------
+
+    return {
+
+        "anomaly_score":
+            anomaly_score,
+
+        "max_distance":
+            max_distance,
+
+        "mean_distance":
+            mean_distance,
+
+        "top_5_distance":
+            top_5_distance,
+
+        "top_1_distance":
+            top_1_distance,
+
+        "top_patch_count":
+            int(
+                top_count
+            ),
+
+        "total_patch_count":
+            int(
+                number_of_patches
+            ),
+
+        # ----------------------------------------------------
+        # LOCALIZATION DATA
+        # ----------------------------------------------------
+
+        "patch_distances":
+            distances.tolist(),
+
+        "patch_anomaly_map":
+            patch_anomaly_map.tolist(),
+
+        "normalized_anomaly_map":
+            normalized_anomaly_map.tolist(),
+
+        "patch_grid_height":
+            int(
+                patch_grid_height
+            ),
+
+        "patch_grid_width":
+            int(
+                patch_grid_width
+            )
     }
 
 
 # ============================================================
-# FINAL PREDICTION
+# PREDICTION
 # ============================================================
 
-def predict_image(
+def predict_with_feature_bank(
     image_path: str,
     category: str
 ):
 
-    if category not in CATEGORIES:
+    # --------------------------------------------------------
+    # Extract features
+    # --------------------------------------------------------
+
+    feature_map = (
+        extract_image_features(
+            image_path
+        )
+    )
+
+    # --------------------------------------------------------
+    # Convert to patches
+    # --------------------------------------------------------
+
+    query_features = (
+        feature_map_to_patches(
+            feature_map
+        )
+    )
+
+    query_features = (
+        query_features
+        .detach()
+        .cpu()
+        .numpy()
+        .astype(
+            np.float32
+        )
+    )
+
+    # --------------------------------------------------------
+    # Load memory bank
+    # --------------------------------------------------------
+
+    memory_bank = (
+        load_feature_bank(
+            category
+        )
+    )
+
+    # --------------------------------------------------------
+    # Validate dimensions
+    # --------------------------------------------------------
+
+    if (
+        query_features.shape[1]
+        != memory_bank.shape[1]
+    ):
+
         raise ValueError(
-            f"Unsupported product category: {category}"
+            "Feature dimension mismatch. "
+            f"Query={query_features.shape[1]}, "
+            f"MemoryBank={memory_bank.shape[1]}. "
+            "Rebuild the feature banks using "
+            "the current PatchCore extractor."
         )
 
-    scores = calculate_anomaly_score(
-        image_path,
-        category
-    )
+    # --------------------------------------------------------
+    # Calculate PatchCore score
+    # --------------------------------------------------------
 
-    anomaly_score = scores[
-        "anomaly_score"
-    ]
-
-    threshold = load_threshold(
-        category
-    )
-
-    prediction = (
-        "DEFECTIVE"
-        if anomaly_score > threshold
-        else "NORMAL"
-    )
-
-
-    return {
-
-        "prediction": prediction,
-
-        "reconstruction_error": round(
-            anomaly_score,
-            6
-        ),
-
-        "anomaly_score": round(
-            anomaly_score,
-            6
-        ),
-
-        "mean_error": round(
-            scores["mean_error"],
-            6
-        ),
-
-        "top_region_error": round(
-            scores["top_5_error"],
-            6
-        ),
-
-        "top_5_error": round(
-            scores["top_5_error"],
-            6
-        ),
-
-        "top_1_error": round(
-            scores["top_1_error"],
-            6
-        ),
-
-        "top_05_error": round(
-            scores["top_05_error"],
-            6
-        ),
-
-        "high_error_ratio": round(
-            scores["high_error_ratio"],
-            6
-        ),
-
-        "max_error": round(
-            scores["max_error"],
-            6
-        ),
-
-        "threshold": round(
-            threshold,
-            6
-        ),
-
-        "category": category,
-
-        "device": str(device),
-
-        "model": (
-            f"{category}_autoencoder"
+    result = (
+        calculate_patchcore_score(
+            query_features,
+            memory_bank
         )
-    }
+    )
+
+    # --------------------------------------------------------
+    # Metadata
+    # --------------------------------------------------------
+
+    result.update({
+
+        "category":
+            category,
+
+        "model":
+            "PatchCore-Style Multi-Scale ResNet18",
+
+        "device":
+            str(DEVICE),
+
+        "feature_dimension":
+            int(
+                query_features.shape[1]
+            ),
+
+        "query_patch_count":
+            int(
+                query_features.shape[0]
+            ),
+
+        "memory_bank_patch_count":
+            int(
+                memory_bank.shape[0]
+            )
+    })
+
+    return result

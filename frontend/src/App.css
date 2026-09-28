@@ -1,6 +1,200 @@
-/* ================================
-   APP / LOGIN
-================================ */
+/* ============================================================
+   GLOBAL
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background: #f5f7fb;
+  color: #172033;
+}
+
+
+/* ============================================================
+   APP CONTAINER
+   ============================================================ */
+
+.app-container {
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+
+/* ============================================================
+   TOP NAVIGATION
+   ============================================================ */
+
+.app-navigation {
+  height: 72px;
+
+  padding: 0 34px;
+
+  background: #ffffff;
+
+  border-bottom: 1px solid #e5e9f0;
+
+  display: flex;
+  align-items: center;
+
+  position: sticky;
+  top: 0;
+
+  z-index: 100;
+}
+
+
+/* ============================================================
+   NAV BRAND
+   ============================================================ */
+
+.app-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  min-width: 220px;
+}
+
+.app-nav-logo {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #172033;
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.app-nav-brand strong {
+  font-size: 16px;
+  font-weight: 750;
+  color: #172033;
+}
+
+.app-nav-brand span {
+  margin-left: 4px;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  color: #5267d8;
+}
+
+
+/* ============================================================
+   NAV LINKS
+   ============================================================ */
+
+.app-nav-links {
+  flex: 1;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 8px;
+}
+
+.nav-button {
+  border: none;
+  background: transparent;
+
+  color: #687386;
+
+  padding: 10px 18px;
+
+  border-radius: 8px;
+
+  font-size: 14px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.nav-button:hover {
+  background: #f1f3f7;
+  color: #172033;
+}
+
+.nav-button.active {
+  background: #172033;
+  color: #ffffff;
+}
+
+
+/* ============================================================
+   LOGOUT
+   ============================================================ */
+
+.app-logout-button {
+  border: 1px solid #e0e4eb;
+
+  background: #ffffff;
+  color: #4e596b;
+
+  padding: 9px 17px;
+
+  border-radius: 8px;
+
+  font-size: 13px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.app-logout-button:hover {
+  background: #f8f9fb;
+  border-color: #cdd3dd;
+  color: #172033;
+}
+
+
+/* ============================================================
+   PAGE CONTENT
+   ============================================================ */
+
+.app-page-content {
+  min-height: calc(100vh - 72px);
+}
+
+
+/* ============================================================
+   LOGIN PAGE
+   ============================================================ */
 
 .login-page {
   min-height: 100vh;
@@ -9,241 +203,323 @@
   align-items: center;
   justify-content: center;
 
-  padding: 30px;
+  padding: 30px 20px;
 
   background:
     radial-gradient(
-      circle at 10% 15%,
-      rgba(37, 99, 235, 0.35),
-      transparent 28%
+      circle at top left,
+      #eef2ff 0%,
+      transparent 35%
     ),
-    radial-gradient(
-      circle at 90% 85%,
-      rgba(6, 182, 212, 0.28),
-      transparent 30%
-    ),
-    linear-gradient(
-      135deg,
-      #061329 0%,
-      #0b2850 50%,
-      #075985 100%
-    );
+    #f5f7fb;
 }
 
-/* Login card */
+
+/* ============================================================
+   LOGIN CARD
+   ============================================================ */
 
 .login-card {
-  width: 440px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 440px;
 
-  padding: 40px;
+  background: #ffffff;
 
-  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e3e7ee;
 
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 18px;
 
-  border-radius: 24px;
+  padding: 38px;
 
   box-shadow:
-    0 30px 80px rgba(0, 0, 0, 0.30);
+    0 15px 45px rgba(16, 24, 40, 0.08);
 }
 
-/* Logo */
+
+/* ============================================================
+   LOGIN LOGO
+   ============================================================ */
 
 .logo-section {
   text-align: center;
+
   margin-bottom: 30px;
 }
 
 .logo-icon {
-  width: 68px;
-  height: 68px;
+  width: 58px;
+  height: 58px;
 
-  margin: 0 auto 16px;
+  margin: 0 auto 15px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: 19px;
+  border-radius: 15px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #06b6d4
-    );
+  background: #172033;
+  color: #ffffff;
 
-  color: white;
-
-  font-size: 23px;
-  font-weight: 900;
+  font-size: 18px;
+  font-weight: 800;
 
   box-shadow:
-    0 12px 30px rgba(37, 99, 235, 0.35);
+    0 8px 20px rgba(23, 32, 51, 0.18);
 }
 
 .logo-section h1 {
-  margin: 0;
-  font-size: 31px;
-  font-weight: 800;
-  color: #2563eb;
-}
+  margin: 0 0 7px;
 
-.logo-section p {
-  margin: 8px 0 0;
+  font-size: 25px;
+  font-weight: 780;
 
-  color: #64748b;
-
-  font-size: 14px;
-}
-
-/* Form */
-
-.login-form h2 {
-  margin: 0 0 6px;
-
-  font-size: 24px;
   color: #172033;
 }
 
-.login-subtitle {
-  margin: 0 0 25px;
+.logo-section p {
+  margin: 0;
 
-  color: #64748b;
+  color: #7a8496;
 
-  font-size: 14px;
+  font-size: 13px;
 }
+
+
+/* ============================================================
+   LOGIN FORM
+   ============================================================ */
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form h2 {
+  margin: 0 0 7px;
+
+  font-size: 22px;
+  font-weight: 750;
+}
+
+.login-subtitle {
+  margin: 0 0 24px;
+
+  color: #7b8494;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+
+.error-message {
+  margin-bottom: 18px;
+
+  padding: 11px 13px;
+
+  border: 1px solid #f0c8c5;
+
+  border-radius: 8px;
+
+  background: #fff4f3;
+
+  color: #b42318;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+
+/* ============================================================
+   FORM LABELS
+   ============================================================ */
 
 .login-form label {
-  display: block;
+  margin-bottom: 7px;
 
-  margin: 16px 0 7px;
+  color: #344054;
 
-  color: #334155;
-
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
 }
+
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
 
 .login-form input,
 .login-form select {
   width: 100%;
 
-  padding: 13px 14px;
+  height: 46px;
 
-  border: 1px solid #d8e1ed;
-  border-radius: 10px;
+  margin-bottom: 17px;
 
-  outline: none;
+  padding: 0 13px;
 
-  background: #f8fafc;
+  border: 1px solid #d9dee7;
+
+  border-radius: 8px;
+
+  background: #ffffff;
 
   color: #172033;
 
   font-size: 14px;
 
-  transition: 0.2s;
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.login-form input::placeholder {
+  color: #a1a8b5;
 }
 
 .login-form input:focus,
 .login-form select:focus {
-  border-color: #2563eb;
-
-  background: white;
+  border-color: #6675d9;
 
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.10);
+    0 0 0 3px rgba(102, 117, 217, 0.12);
 }
 
-/* Login button */
+
+/* ============================================================
+   LOGIN BUTTON
+   ============================================================ */
 
 .login-button {
   width: 100%;
 
-  margin-top: 25px;
+  height: 47px;
 
-  padding: 14px;
+  margin-top: 4px;
 
   border: none;
-  border-radius: 10px;
 
-  background:
-    linear-gradient(
-      90deg,
-      #2563eb,
-      #0891b2
-    );
+  border-radius: 8px;
 
-  color: white;
+  background: #172033;
+  color: #ffffff;
 
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
 
-  box-shadow:
-    0 10px 24px rgba(37, 99, 235, 0.25);
+  cursor: pointer;
 
-  transition: 0.2s;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.login-button:hover {
-  transform: translateY(-2px);
+.login-button:hover:not(:disabled) {
+  transform: translateY(-1px);
 
   box-shadow:
-    0 14px 30px rgba(37, 99, 235, 0.32);
+    0 7px 18px rgba(23, 32, 51, 0.18);
 }
 
 .login-button:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
-/* Error */
 
-.error-message {
-  margin-bottom: 15px;
-
-  padding: 11px 14px;
-
-  border-radius: 9px;
-
-  background: #fff1f2;
-
-  border: 1px solid #fecdd3;
-
-  color: #be123c;
-
-  font-size: 14px;
-}
-
-/* Register */
+/* ============================================================
+   REGISTER
+   ============================================================ */
 
 .register-text {
-  margin-top: 22px;
+  margin: 22px 0 0;
 
   text-align: center;
 
-  color: #64748b;
+  color: #7b8494;
 
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .register-text span {
-  color: #2563eb;
-  font-weight: 800;
+  color: #5267d8;
+  font-weight: 700;
   cursor: pointer;
 }
 
-/* Mobile */
 
-@media (max-width: 500px) {
-  .login-page {
-    padding: 15px;
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 800px) {
+
+  .app-navigation {
+    height: auto;
+
+    min-height: 72px;
+
+    padding: 12px 18px;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
   }
+
+  .app-nav-brand {
+    min-width: auto;
+  }
+
+  .app-nav-links {
+    order: 3;
+
+    width: 100%;
+
+    justify-content: flex-start;
+
+    padding-bottom: 3px;
+  }
+
+  .app-logout-button {
+    margin-left: auto;
+  }
+
+  .app-page-content {
+    min-height: calc(100vh - 120px);
+  }
+
+}
+
+
+@media (max-width: 520px) {
 
   .login-card {
     padding: 28px 22px;
-    border-radius: 18px;
   }
+
+  .logo-section h1 {
+    font-size: 22px;
+  }
+
+  .app-nav-brand strong {
+    font-size: 14px;
+  }
+
+  .nav-button {
+    padding: 9px 13px;
+    font-size: 13px;
+  }
+
+  .app-logout-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
 }

@@ -5,15 +5,16 @@ import "./Dashboard.css";
 function Dashboard() {
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Selected inspection card
   const [selectedInspectionId, setSelectedInspectionId] = useState(null);
 
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
-
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const token = localStorage.getItem("access_token");
+
+  // ============================================================
+  // BACKEND URL
+  // ============================================================
+
+  const API_BASE_URL = "http://127.0.0.1:8000";
 
   // ============================================================
   // FETCH INSPECTIONS
@@ -21,14 +22,14 @@ function Dashboard() {
 
   const fetchInspections = async () => {
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/inspections/",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      setLoading(true);
+
+      const response = await fetch(`${API_BASE_URL}/inspections/`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (response.status === 401) {
         localStorage.clear();
@@ -42,18 +43,26 @@ function Dashboard() {
 
       const data = await response.json();
 
-      setInspections(data);
+      if (Array.isArray(data)) {
+        setInspections(data);
+      } else {
+        setInspections([]);
+      }
     } catch (error) {
-      console.error(
-        "Failed to fetch inspections:",
-        error
-      );
+      console.error("Failed to fetch inspections:", error);
+      setInspections([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (!token) {
+      localStorage.clear();
+      window.location.reload();
+      return;
+    }
+
     fetchInspections();
   }, []);
 
@@ -67,22 +76,21 @@ function Dashboard() {
   };
 
   // ============================================================
-  // STATISTICS
-  // IMPORTANT:
-  // Backend returns "DEFECT", NOT "DEFECTIVE"
+  // BASIC STATISTICS
   // ============================================================
 
   const totalInspections = inspections.length;
 
   const normalInspections = inspections.filter(
-    (item) => item.result === "NORMAL"
+    (item) =>
+      String(item.result || "").toUpperCase() === "NORMAL"
   ).length;
 
-  const defectiveInspections = inspections.filter(
-    (item) =>
-      item.result === "DEFECT" ||
-      item.result === "DEFECTIVE"
-  ).length;
+  const defectiveInspections = inspections.filter((item) => {
+    const result = String(item.result || "").toUpperCase();
+
+    return result === "DEFECT" || result === "DEFECTIVE";
+  }).length;
 
   const aiInspections = inspections.length;
 
@@ -105,7 +113,48 @@ function Dashboard() {
     toothbrush: 0.198892,
     transistor: 0.167431,
     wood: 0.226569,
-    zipper: 0.120682
+    zipper: 0.120682,
+  };
+
+  // ============================================================
+  // CATEGORY FORMATTER
+  // ============================================================
+
+  const formatCategory = (value) => {
+    if (!value) {
+      return "Unknown";
+    }
+
+    return String(value)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  // ============================================================
+  // SEVERITY CLASS
+  // ============================================================
+
+  const getSeverityClass = (level) => {
+    if (!level) {
+      return "";
+    }
+
+    switch (String(level).toLowerCase()) {
+      case "critical":
+        return "severity-critical";
+
+      case "high":
+        return "severity-high";
+
+      case "medium":
+        return "severity-medium";
+
+      case "low":
+        return "severity-low";
+
+      default:
+        return "";
+    }
   };
 
   // ============================================================
@@ -141,7 +190,6 @@ function Dashboard() {
 
         </div>
 
-
         <div className="user-area">
 
           <div className="user-info">
@@ -169,11 +217,10 @@ function Dashboard() {
 
 
       {/* ======================================================
-          MAIN CONTENT
+          MAIN
           ====================================================== */}
 
       <main className="dashboard-content">
-
 
         {/* ====================================================
             WELCOME
@@ -201,7 +248,6 @@ function Dashboard() {
 
           </div>
 
-
           <div className="system-status">
 
             <div className="status-dot"></div>
@@ -224,11 +270,10 @@ function Dashboard() {
 
 
         {/* ====================================================
-            STATISTICS
+            DASHBOARD SUMMARY STATISTICS
             ==================================================== */}
 
         <section className="stats-grid">
-
 
           {/* TOTAL */}
 
@@ -357,7 +402,7 @@ function Dashboard() {
 
 
         {/* ====================================================
-            UPLOAD
+            UPLOAD INSPECTION
             ==================================================== */}
 
         <UploadInspection
@@ -366,7 +411,92 @@ function Dashboard() {
 
 
         {/* ====================================================
-            RESULTS
+            QUICK QUALITY SUMMARY
+            ==================================================== */}
+
+        <section className="dashboard-summary-section">
+
+          <div className="section-header">
+
+            <div>
+
+              <div className="section-eyebrow">
+                QUALITY OVERVIEW
+              </div>
+
+              <h2>
+                Inspection Summary
+              </h2>
+
+              <p>
+                Current manufacturing quality inspection overview
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="dashboard-summary-grid">
+
+            <div className="summary-item">
+
+              <span>
+                TOTAL INSPECTIONS
+              </span>
+
+              <strong>
+                {totalInspections}
+              </strong>
+
+            </div>
+
+
+            <div className="summary-item">
+
+              <span>
+                PASSED PRODUCTS
+              </span>
+
+              <strong>
+                {normalInspections}
+              </strong>
+
+            </div>
+
+
+            <div className="summary-item">
+
+              <span>
+                DEFECTIVE PRODUCTS
+              </span>
+
+              <strong>
+                {defectiveInspections}
+              </strong>
+
+            </div>
+
+
+            <div className="summary-item">
+
+              <span>
+                AI ENGINE
+              </span>
+
+              <strong>
+                PatchCore
+              </strong>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ====================================================
+            INSPECTION HISTORY
             ==================================================== */}
 
         <section className="inspection-section">
@@ -389,13 +519,11 @@ function Dashboard() {
 
             </div>
 
-
             <div className="result-count">
 
               <span>
                 {totalInspections}
-              </span>
-
+              </span>{" "}
               inspections
 
             </div>
@@ -403,7 +531,9 @@ function Dashboard() {
           </div>
 
 
-          {/* LOADING */}
+          {/* ==================================================
+              LOADING
+              ================================================== */}
 
           {loading && (
 
@@ -424,7 +554,9 @@ function Dashboard() {
           )}
 
 
-          {/* EMPTY */}
+          {/* ==================================================
+              EMPTY
+              ================================================== */}
 
           {!loading &&
             inspections.length === 0 && (
@@ -440,8 +572,7 @@ function Dashboard() {
                 </h3>
 
                 <p>
-                  Upload a product image to begin
-                  AI inspection.
+                  Upload a product image to begin AI inspection.
                 </p>
 
               </div>
@@ -449,314 +580,744 @@ function Dashboard() {
             )}
 
 
-          {/* RESULTS */}
+          {/* ==================================================
+              INSPECTION RESULTS
+              ================================================== */}
 
           {!loading &&
             inspections.length > 0 && (
 
               <div className="inspection-results">
 
-                {inspections.map(
-                  (inspection) => {
+                {inspections.map((inspection) => {
 
-                    const filename =
+                  // ==================================================
+                  // ID
+                  // ==================================================
+
+                  const inspectionId =
+                    inspection.id ||
+                    inspection._id ||
+                    inspection.inspection_id;
+
+
+                  // ==================================================
+                  // FILE NAME
+                  // ==================================================
+
+                  let filename = "";
+
+                  if (inspection.filename) {
+
+                    filename = inspection.filename;
+
+                  } else if (inspection.image_path) {
+
+                    filename = String(
                       inspection.image_path
-                        ? inspection.image_path
-                            .split("\\")
-                            .pop()
-                            .split("/")
-                            .pop()
-                        : "";
+                    )
+                      .split("\\")
+                      .pop()
+                      .split("/")
+                      .pop();
 
-                    const imageUrl =
-                      filename
-                        ? `http://127.0.0.1:8000/uploads/${filename}`
-                        : null;
+                  }
 
 
-                    // ==================================================
-                    // RESULT TYPE
-                    // ==================================================
+                  // ==================================================
+                  // IMAGE URL
+                  // ==================================================
 
-                    const isNormal =
-                      inspection.result === "NORMAL";
-
-                    const isDefect =
-                      inspection.result === "DEFECT" ||
-                      inspection.result === "DEFECTIVE";
-
-
-                    // ==================================================
-                    // SELECTED CARD
-                    // ==================================================
-
-                    const isSelected =
-                      String(selectedInspectionId) ===
-                      String(inspection.id);
+                  const imageUrl = filename
+                    ? `${API_BASE_URL}/uploads/${encodeURIComponent(
+                        filename
+                      )}`
+                    : null;
 
 
-                    // ==================================================
-                    // SCORE
-                    // ==================================================
+                  // ==================================================
+                  // RESULT
+                  // ==================================================
 
-                    const score =
-                      inspection.anomaly_score !== null &&
-                      inspection.anomaly_score !== undefined
-                        ? Number(
-                            inspection.anomaly_score
-                          )
-                        : null;
+                  const result = String(
+                    inspection.result || ""
+                  ).toUpperCase();
 
+                  const isNormal =
+                    result === "NORMAL";
 
-                    // ==================================================
-                    // CATEGORY
-                    // ==================================================
-
-                    const category =
-                      inspection.category ||
-                      "Unknown";
+                  const isDefect =
+                    result === "DEFECT" ||
+                    result === "DEFECTIVE";
 
 
-                    const threshold =
-                      categoryThresholds[
-                        category
-                      ];
+                  // ==================================================
+                  // SELECTED
+                  // ==================================================
+
+                  const isSelected =
+                    String(selectedInspectionId) ===
+                    String(inspectionId);
 
 
-                    // ==================================================
-                    // CARD CLASS
-                    // ==================================================
+                  // ==================================================
+                  // ANOMALY SCORE
+                  // ==================================================
 
-                    let cardClass =
-                      "inspection-result-card";
-
-                    if (isDefect) {
-                      cardClass +=
-                        " inspection-defect";
-                    } else if (isNormal) {
-                      cardClass +=
-                        " inspection-normal";
-                    }
-
-                    if (isSelected && isNormal) {
-                      cardClass +=
-                        " inspection-selected-normal";
-                    }
-
-                    if (isSelected && isDefect) {
-                      cardClass +=
-                        " inspection-selected-defect";
-                    }
+                  const score =
+                    inspection.anomaly_score !== null &&
+                    inspection.anomaly_score !== undefined &&
+                    Number.isFinite(
+                      Number(inspection.anomaly_score)
+                    )
+                      ? Number(inspection.anomaly_score)
+                      : null;
 
 
-                    return (
+                  // ==================================================
+                  // CATEGORY
+                  // ==================================================
 
-                      <article
-                        className={cardClass}
-                        key={inspection.id}
+                  const category =
+                    inspection.category || "Unknown";
 
-                        onClick={() =>
+                  const formattedCategory =
+                    formatCategory(category);
+
+
+                  // ==================================================
+                  // THRESHOLD
+                  // ==================================================
+
+                  const threshold =
+                    inspection.threshold !== undefined &&
+                    inspection.threshold !== null &&
+                    Number.isFinite(
+                      Number(inspection.threshold)
+                    )
+                      ? Number(inspection.threshold)
+                      : categoryThresholds[
+                          String(category).toLowerCase()
+                        ];
+
+
+                  // ==================================================
+                  // QUALITY ASSESSMENT
+                  // ==================================================
+
+                  const assessment =
+                    inspection.quality_assessment || {};
+
+
+                  // ==================================================
+                  // SEVERITY SCORE
+                  // ==================================================
+
+                  const severityScore =
+                    assessment.severity_score !== undefined &&
+                    assessment.severity_score !== null &&
+                    Number.isFinite(
+                      Number(assessment.severity_score)
+                    )
+                      ? Number(assessment.severity_score)
+                      : null;
+
+
+                  // ==================================================
+                  // SEVERITY LEVEL
+                  // ==================================================
+
+                  const severityLevel =
+                    assessment.severity_level ||
+                    (isNormal ? "Low" : "Pending");
+
+
+                  // ==================================================
+                  // QUALITY RISK
+                  // ==================================================
+
+                  const qualityRisk =
+                    assessment.quality_risk ||
+                    assessment.risk_level ||
+                    (isNormal ? "Low" : "Pending");
+
+
+                  // ==================================================
+                  // QUALITY STATUS
+                  // ==================================================
+
+                  const qualityStatus =
+                    assessment.quality_status ||
+                    (isNormal
+                      ? "PASS"
+                      : isDefect
+                      ? "FAIL"
+                      : "REVIEW");
+
+
+                  // ==================================================
+                  // RECOMMENDED ACTION
+                  // ==================================================
+
+                  const recommendedAction =
+                    assessment.recommended_action ||
+                    (isNormal
+                      ? "Product meets the current quality inspection criteria."
+                      : "Quality inspection required.");
+
+
+                  // ==================================================
+                  // DEFECT TYPE
+                  // ==================================================
+
+                  const defectType =
+                    assessment.defect_type ||
+                    (isNormal
+                      ? "No defect detected"
+                      : "Visual Anomaly");
+
+
+                  // ==================================================
+                  // SIZE SCORE
+                  // ==================================================
+
+                  const sizeScore =
+                    assessment.size_score !== undefined &&
+                    assessment.size_score !== null &&
+                    Number.isFinite(
+                      Number(assessment.size_score)
+                    )
+                      ? Number(assessment.size_score)
+                      : 0;
+
+
+                  // ==================================================
+                  // LOCATION SCORE
+                  // ==================================================
+
+                  const locationScore =
+                    assessment.location_score !== undefined &&
+                    assessment.location_score !== null &&
+                    Number.isFinite(
+                      Number(assessment.location_score)
+                    )
+                      ? Number(assessment.location_score)
+                      : 0;
+
+
+                  // ==================================================
+                  // DEFECT TYPE SCORE
+                  // ==================================================
+
+                  const defectTypeScore =
+                    assessment.defect_type_score !== undefined &&
+                    assessment.defect_type_score !== null &&
+                    Number.isFinite(
+                      Number(assessment.defect_type_score)
+                    )
+                      ? Number(assessment.defect_type_score)
+                      : 0;
+
+
+                  // ==================================================
+                  // CONFIDENCE SCORE
+                  // ==================================================
+
+                  const confidenceScore =
+                    assessment.confidence_score !== undefined &&
+                    assessment.confidence_score !== null &&
+                    Number.isFinite(
+                      Number(assessment.confidence_score)
+                    )
+                      ? Number(assessment.confidence_score)
+                      : 0;
+
+
+                  // ==================================================
+                  // CARD CLASS
+                  // ==================================================
+
+                  let cardClass =
+                    "inspection-result-card";
+
+                  if (isDefect) {
+
+                    cardClass +=
+                      " inspection-defect";
+
+                  } else if (isNormal) {
+
+                    cardClass +=
+                      " inspection-normal";
+
+                  }
+
+
+                  if (isSelected && isNormal) {
+
+                    cardClass +=
+                      " inspection-selected-normal";
+
+                  }
+
+
+                  if (isSelected && isDefect) {
+
+                    cardClass +=
+                      " inspection-selected-defect";
+
+                  }
+
+
+                  // ==================================================
+                  // RENDER CARD
+                  // ==================================================
+
+                  return (
+
+                    <article
+                      className={cardClass}
+                      key={
+                        inspectionId ||
+                        `${filename}-${inspection.created_at}`
+                      }
+                      onClick={() =>
+                        setSelectedInspectionId(
+                          inspectionId
+                        )
+                      }
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+
+                        if (
+                          event.key === "Enter" ||
+                          event.key === " "
+                        ) {
+
+                          event.preventDefault();
+
                           setSelectedInspectionId(
-                            inspection.id
-                          )
+                            inspectionId
+                          );
+
                         }
 
-                        tabIndex={0}
+                      }}
+                    >
 
-                        onKeyDown={(event) => {
+                      {/* ==================================================
+                          IMAGE
+                          ================================================== */}
 
-                          if (
-                            event.key === "Enter" ||
-                            event.key === " "
-                          ) {
-                            event.preventDefault();
+                      <div className="result-image-column">
 
-                            setSelectedInspectionId(
-                              inspection.id
-                            );
-                          }
+                        <div className="result-image-container">
 
-                        }}
+                          {imageUrl ? (
 
-                      >
+                            <img
+                              src={imageUrl}
+                              alt={`Inspected ${formattedCategory}`}
+                              className="result-image"
+                              onError={(event) => {
 
+                                event.currentTarget.style.display =
+                                  "none";
 
-                        {/* =================================
-                            IMAGE
-                            ================================= */}
+                                const parent =
+                                  event.currentTarget.parentElement;
 
-                        <div className="result-image-column">
+                                if (parent) {
 
-                          <div className="result-image-container">
+                                  parent.classList.add(
+                                    "image-load-error"
+                                  );
 
-                            {imageUrl ? (
+                                }
 
-                              <img
-                                src={imageUrl}
-                                alt="Inspected product"
-                                className="result-image"
-                              />
+                              }}
+                            />
 
-                            ) : (
+                          ) : (
 
-                              <div className="image-placeholder">
-                                No Image
-                              </div>
+                            <div className="image-placeholder">
+                              No Image
+                            </div>
 
-                            )}
+                          )}
 
 
-                            {/* IMAGE STATUS */}
+                          {isDefect && (
 
-                            {isDefect && (
+                            <div className="image-defect-badge">
+                              ! DEFECT
+                            </div>
 
-                              <div className="image-defect-badge">
-                                ! DEFECT
-                              </div>
+                          )}
 
-                            )}
 
-                            {isNormal && (
+                          {isNormal && (
 
-                              <div className="image-normal-badge">
-                                ✓ NORMAL
-                              </div>
+                            <div className="image-normal-badge">
+                              ✓ NORMAL
+                            </div>
 
-                            )}
+                          )}
+
+                        </div>
+
+                      </div>
+
+
+                      {/* ==================================================
+                          DETAILS
+                          ================================================== */}
+
+                      <div className="result-details">
+
+
+                        {/* TITLE */}
+
+                        <div className="result-title-row">
+
+                          <div>
+
+                            <div className="inspection-number">
+                              INSPECTION #{inspectionId}
+                            </div>
+
+                            <h3>
+                              {formattedCategory}
+                            </h3>
+
+                            <p className="filename">
+                              {filename}
+                            </p>
+
+                          </div>
+
+
+                          {isDefect && (
+
+                            <span className="result-defective">
+                              ! DEFECT
+                            </span>
+
+                          )}
+
+
+                          {isNormal && (
+
+                            <span className="result-normal">
+                              ✓ NORMAL
+                            </span>
+
+                          )}
+
+                        </div>
+
+
+                        {/* BASIC RESULT INFO */}
+
+                        <div className="result-info-grid">
+
+                          <div
+                            className={`result-info-box ${
+                              isDefect
+                                ? "info-defect"
+                                : isNormal
+                                ? "info-normal"
+                                : ""
+                            }`}
+                          >
+
+                            <span>
+                              AI RESULT
+                            </span>
+
+                            <strong>
+                              {result || "PENDING"}
+                            </strong>
+
+                          </div>
+
+
+                          <div className="result-info-box">
+
+                            <span>
+                              ANOMALY SCORE
+                            </span>
+
+                            <strong className="score-value">
+
+                              {score !== null
+                                ? score.toFixed(6)
+                                : "—"}
+
+                            </strong>
+
+                          </div>
+
+
+                          <div className="result-info-box">
+
+                            <span>
+                              CATEGORY
+                            </span>
+
+                            <strong>
+                              {formattedCategory}
+                            </strong>
+
+                          </div>
+
+
+                          <div className="result-info-box">
+
+                            <span>
+                              STATUS
+                            </span>
+
+                            <strong className="completed-status">
+
+                              ●{" "}
+                              {inspection.status ||
+                                "completed"}
+
+                            </strong>
 
                           </div>
 
                         </div>
 
 
-                        {/* =================================
-                            DETAILS
-                            ================================= */}
+                        {/* MODEL SUMMARY */}
 
-                        <div className="result-details">
+                        <div className="model-summary">
+
+                          <div>
+
+                            <span>
+                              PRODUCT
+                            </span>
+
+                            <strong>
+                              {formattedCategory}
+                            </strong>
+
+                          </div>
 
 
-                          {/* TITLE */}
+                          <div>
 
-                          <div className="result-title-row">
+                            <span>
+                              DETECTION
+                            </span>
+
+                            <strong>
+                              PatchCore
+                            </strong>
+
+                          </div>
+
+
+                          <div>
+
+                            <span>
+                              THRESHOLD
+                            </span>
+
+                            <strong>
+
+                              {threshold !== undefined &&
+                              threshold !== null &&
+                              Number.isFinite(
+                                Number(threshold)
+                              )
+                                ? Number(
+                                    threshold
+                                  ).toFixed(6)
+                                : "—"}
+
+                            </strong>
+
+                          </div>
+
+                        </div>
+
+
+                        {/* ==================================================
+                            QUALITY ASSESSMENT
+                            ================================================== */}
+
+                        <div className="quality-assessment-panel">
+
+                          <div className="quality-assessment-header">
 
                             <div>
 
-                              <div className="inspection-number">
-                                INSPECTION #{inspection.id}
-                              </div>
-
                               <h3>
-                                {category
-                                  .replace("_", " ")
-                                  .replace(
-                                    /\b\w/g,
-                                    (char) =>
-                                      char.toUpperCase()
-                                  )}
+                                Quality Assessment
                               </h3>
 
-                              <p className="filename">
-                                {filename}
+                              <p>
+                                AI-based severity
+                                and quality-risk
+                                evaluation
                               </p>
 
                             </div>
 
 
-                            {/* TOP STATUS */}
-
-                            {isDefect && (
-
-                              <span className="result-defective">
-                                ! DEFECT
-                              </span>
-
-                            )}
-
-                            {isNormal && (
-
-                              <span className="result-normal">
-                                ✓ NORMAL
-                              </span>
-
-                            )}
-
-                          </div>
-
-
-                          {/* =================================
-                              INFO GRID
-                              ================================= */}
-
-                          <div className="result-info-grid">
-
-
                             <div
-                              className={`result-info-box ${
-                                isDefect
-                                  ? "info-defect"
-                                  : isNormal
-                                  ? "info-normal"
-                                  : ""
-                              }`}
+                              className={`severity-badge ${getSeverityClass(
+                                severityLevel
+                              )}`}
                             >
+                              {severityLevel}
+                            </div>
+
+                          </div>
+
+
+                          {/* SEVERITY SCORE */}
+
+                          <div className="severity-score-section">
+
+                            <div className="severity-score-main">
 
                               <span>
-                                AI RESULT
+                                SEVERITY SCORE
                               </span>
 
                               <strong>
-                                {inspection.result ||
-                                  "PENDING"}
-                              </strong>
 
-                            </div>
-
-
-                            <div className="result-info-box">
-
-                              <span>
-                                ANOMALY SCORE
-                              </span>
-
-                              <strong className="score-value">
-
-                                {score !== null
-                                  ? score.toFixed(6)
+                                {severityScore !== null
+                                  ? severityScore.toFixed(2)
                                   : "—"}
 
                               </strong>
 
+                              <small>
+                                / 100
+                              </small>
+
                             </div>
 
 
-                            <div className="result-info-box">
+                            <div className="severity-score-bar">
+
+                              <div
+                                className="severity-score-fill"
+                                style={{
+                                  width:
+                                    severityScore !== null
+                                      ? `${Math.min(
+                                          Math.max(
+                                            severityScore,
+                                            0
+                                          ),
+                                          100
+                                        )}%`
+                                      : "0%",
+                                }}
+                              ></div>
+
+                            </div>
+
+                          </div>
+
+
+                          {/* ASSESSMENT DETAILS */}
+
+                          <div className="quality-assessment-grid">
+
+                            <div className="assessment-item">
 
                               <span>
-                                CATEGORY
+                                QUALITY RISK
                               </span>
 
                               <strong>
-                                {category
-                                  .replace("_", " ")
-                                  .replace(
-                                    /\b\w/g,
-                                    (char) =>
-                                      char.toUpperCase()
-                                  )}
+                                {qualityRisk}
                               </strong>
 
                             </div>
 
 
-                            <div className="result-info-box">
+                            <div className="assessment-item">
 
                               <span>
-                                STATUS
+                                QUALITY STATUS
                               </span>
 
-                              <strong className="completed-status">
-                                ● {inspection.status || "completed"}
+                              <strong>
+                                {qualityStatus}
+                              </strong>
+
+                            </div>
+
+
+                            <div className="assessment-item">
+
+                              <span>
+                                DEFECT TYPE
+                              </span>
+
+                              <strong>
+                                {defectType}
+                              </strong>
+
+                            </div>
+
+
+                            <div className="assessment-item">
+
+                              <span>
+                                SIZE SCORE
+                              </span>
+
+                              <strong>
+                                {sizeScore.toFixed(2)}
+                              </strong>
+
+                            </div>
+
+
+                            <div className="assessment-item">
+
+                              <span>
+                                LOCATION SCORE
+                              </span>
+
+                              <strong>
+                                {locationScore.toFixed(2)}
+                              </strong>
+
+                            </div>
+
+
+                            <div className="assessment-item">
+
+                              <span>
+                                DEFECT TYPE SCORE
+                              </span>
+
+                              <strong>
+                                {defectTypeScore.toFixed(2)}
+                              </strong>
+
+                            </div>
+
+
+                            <div className="assessment-item">
+
+                              <span>
+                                CONFIDENCE SCORE
+                              </span>
+
+                              <strong>
+                                {confidenceScore.toFixed(2)}
                               </strong>
 
                             </div>
@@ -764,187 +1325,200 @@ function Dashboard() {
                           </div>
 
 
-                          {/* =================================
-                              MODEL INFO
-                              ================================= */}
+                          {/* ASSESSMENT REASON */}
 
-                          <div className="model-summary">
+                          {assessment.assessment_reason && (
 
-
-                            <div>
+                            <div className="assessment-reason-box">
 
                               <span>
-                                PRODUCT
+                                ASSESSMENT REASON
                               </span>
 
-                              <strong>
-                                {category
-                                  .replace("_", " ")
-                                  .replace(
-                                    /\b\w/g,
-                                    (char) =>
-                                      char.toUpperCase()
-                                  )}
-                              </strong>
+                              <p>
+                                {
+                                  assessment.assessment_reason
+                                }
+                              </p>
 
                             </div>
 
+                          )}
 
-                            <div>
 
-                              <span>
-                                DETECTION
-                              </span>
+                          {/* RECOMMENDED ACTION */}
 
-                              <strong>
-                                PatchCore
-                              </strong>
+                          <div className="recommended-action-box">
 
+                            <div className="recommended-action-icon">
+                              !
                             </div>
 
-
                             <div>
 
                               <span>
-                                THRESHOLD
+                                RECOMMENDED ACTION
                               </span>
 
                               <strong>
-                                {threshold
-                                  ? threshold.toFixed(6)
-                                  : "—"}
+                                {
+                                  recommendedAction
+                                }
                               </strong>
 
                             </div>
 
                           </div>
-
-
-                          {/* =================================
-                              EXPLANATION
-                              ================================= */}
-
-                          <div
-                            className={`score-explanation ${
-                              isDefect
-                                ? "explanation-defect"
-                                : isNormal
-                                ? "explanation-normal"
-                                : ""
-                            }`}
-                          >
-
-                            {isDefect && (
-
-                              <>
-
-                                <div className="explanation-title">
-
-                                  <span className="explanation-icon">
-                                    !
-                                  </span>
-
-                                  Potential Defect Detected
-
-                                </div>
-
-                                <p>
-                                  The PatchCore AI model detected
-                                  an abnormal visual pattern above
-                                  the calibrated category threshold.
-                                  Further quality inspection is
-                                  recommended.
-                                </p>
-
-                              </>
-
-                            )}
-
-
-                            {isNormal && (
-
-                              <>
-
-                                <div className="explanation-title">
-
-                                  <span className="explanation-icon">
-                                    ✓
-                                  </span>
-
-                                  Quality Check Passed
-
-                                </div>
-
-                                <p>
-                                  The PatchCore AI model found
-                                  the product visual pattern to be
-                                  within the expected normal range
-                                  for this category.
-                                </p>
-
-                              </>
-
-                            )}
-
-                          </div>
-
-
-                          {/* =================================
-                              TECHNICAL INFORMATION
-                              ================================= */}
-
-                          <div className="ai-technical-info">
-
-
-                            <div>
-
-                              <span>
-                                AI MODEL
-                              </span>
-
-                              <strong>
-                                PatchCore-Style Multi-Scale ResNet18
-                              </strong>
-
-                            </div>
-
-
-                            <div>
-
-                              <span>
-                                DETECTION METHOD
-                              </span>
-
-                              <strong>
-                                Feature Memory Bank
-                              </strong>
-
-                            </div>
-
-
-                            <div>
-
-                              <span>
-                                INPUT
-                              </span>
-
-                              <strong>
-                                224 × 224
-                              </strong>
-
-                            </div>
-
-                          </div>
-
 
                         </div>
 
-                      </article>
 
-                    );
+                        {/* ==================================================
+                            RESULT EXPLANATION
+                            ================================================== */}
 
-                  }
-                )}
+                        <div
+                          className={`score-explanation ${
+                            isDefect
+                              ? "explanation-defect"
+                              : isNormal
+                              ? "explanation-normal"
+                              : ""
+                          }`}
+                        >
+
+                          {isDefect && (
+
+                            <>
+                              <div className="explanation-title">
+
+                                <span className="explanation-icon">
+                                  !
+                                </span>
+
+                                Potential Defect
+                                Detected
+
+                              </div>
+
+                              <p>
+                                The PatchCore AI
+                                model detected an
+                                abnormal visual
+                                pattern above the
+                                calibrated category
+                                threshold. Further
+                                quality inspection is
+                                recommended.
+                              </p>
+                            </>
+
+                          )}
+
+
+                          {isNormal && (
+
+                            <>
+                              <div className="explanation-title">
+
+                                <span className="explanation-icon">
+                                  ✓
+                                </span>
+
+                                Quality Check
+                                Passed
+
+                              </div>
+
+                              <p>
+                                The PatchCore AI
+                                model found the
+                                product visual
+                                pattern to be within
+                                the expected normal
+                                range for this
+                                category.
+                              </p>
+                            </>
+
+                          )}
+
+                        </div>
+
+
+                        {/* ==================================================
+                            TECHNICAL INFORMATION
+                            ================================================== */}
+
+                        <div className="ai-technical-info">
+
+                          <div>
+
+                            <span>
+                              AI MODEL
+                            </span>
+
+                            <strong>
+                              {inspection.model ||
+                                "PatchCore-Style Multi-Scale ResNet18"}
+                            </strong>
+
+                          </div>
+
+
+                          <div>
+
+                            <span>
+                              DETECTION METHOD
+                            </span>
+
+                            <strong>
+                              Feature Memory Bank
+                            </strong>
+
+                          </div>
+
+
+                          <div>
+
+                            <span>
+                              INPUT
+                            </span>
+
+                            <strong>
+                              224 × 224
+                            </strong>
+
+                          </div>
+
+
+                          <div>
+
+                            <span>
+                              PROCESSING TIME
+                            </span>
+
+                            <strong>
+
+                              {inspection.processing_time_seconds !==
+                                undefined &&
+                              inspection.processing_time_seconds !==
+                                null
+                                ? `${inspection.processing_time_seconds}s`
+                                : "—"}
+
+                            </strong>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                    </article>
+
+                  );
+                })}
 
               </div>
 

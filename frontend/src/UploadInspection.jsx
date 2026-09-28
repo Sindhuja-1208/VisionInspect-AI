@@ -303,9 +303,10 @@ function UploadInspection({ onUploadSuccess }) {
                     width: "100%",
                     height: "100%",
                     display: "block",
-                    objectFit: "cover",
+                    objectFit: "contain",
                     objectPosition: "center",
                     borderRadius: "inherit",
+                    background: "#f1f4f8",
                   }}
                 />
               )}

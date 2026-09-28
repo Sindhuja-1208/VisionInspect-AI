@@ -1,40 +1,16 @@
 from pathlib import Path
 import numpy as np
 
-from app.ai.predictor import calculate_anomaly_score
+from app.ai.predictor import predict_with_feature_bank
 
 
-# ============================================================
-# PATHS
-# ============================================================
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATASET_DIR = PROJECT_ROOT / "dataset" / "mvtec_ad"
 
-DATASET_DIR = (
-    PROJECT_ROOT
-    / "dataset"
-    / "mvtec_ad"
-)
+MODEL_DIR = PROJECT_ROOT / "models"
+THRESHOLD_DIR = MODEL_DIR / "thresholds"
 
-MODEL_DIR = (
-    PROJECT_ROOT
-    / "models"
-)
-
-THRESHOLD_DIR = (
-    MODEL_DIR
-    / "thresholds"
-)
-
-THRESHOLD_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
-
-# ============================================================
-# CATEGORIES
-# ============================================================
 
 CATEGORIES = [
     "bottle",
@@ -55,375 +31,198 @@ CATEGORIES = [
 ]
 
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
-
-# We use a high percentile of GOOD-image scores.
-#
-# This means:
-# Almost all normal training images should remain NORMAL.
-#
-# A small safety margin is then added so that normal images
-# are not unnecessarily classified as defective.
-#
-GOOD_PERCENTILE = 99.0
-SAFETY_MARGIN = 1.10
+PERCENTILE = 99.0
+SAFETY_FACTOR = 1.10
 
 
-# ============================================================
-# CALIBRATE ONE CATEGORY
-# ============================================================
+def find_normal_images(category):
 
-def calibrate_category(category: str):
-
-    good_dir = (
+    folder = (
         DATASET_DIR
         / category
         / "train"
         / "good"
     )
 
-    if not good_dir.exists():
-
-        print(
-            f"\n[{category}] GOOD directory not found:"
+    if not folder.exists():
+        raise FileNotFoundError(
+            f"Normal image folder not found:\n{folder}"
         )
 
-        print(good_dir)
+    extensions = {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".bmp"
+    }
 
-        return False
-
-    image_files = sorted(
-        list(good_dir.glob("*.png"))
-        + list(good_dir.glob("*.jpg"))
-        + list(good_dir.glob("*.jpeg"))
+    return sorted(
+        [
+            p
+            for p in folder.iterdir()
+            if p.is_file()
+            and p.suffix.lower() in extensions
+        ]
     )
 
-    if not image_files:
 
-        print(
-            f"\n[{category}] No GOOD images found."
-        )
+def calibrate_category(category):
 
-        return False
-
-    print("\n" + "=" * 70)
+    print()
+    print("=" * 70)
     print(f"CALIBRATING: {category.upper()}")
     print("=" * 70)
 
+    images = find_normal_images(category)
+
     print(
-        f"GOOD images found: {len(image_files)}"
+        f"Normal images found: {len(images)}"
     )
 
     scores = []
 
-    for index, image_path in enumerate(
-        image_files,
+    for i, image_path in enumerate(
+        images,
         start=1
     ):
 
-        try:
+        result = predict_with_feature_bank(
+            str(image_path),
+            category
+        )
 
-            result = calculate_anomaly_score(
-                str(image_path),
-                category
-            )
+        score = float(
+            result["anomaly_score"]
+        )
 
-            score = float(
-                result["anomaly_score"]
-            )
-
-            scores.append(score)
-
-            if index % 20 == 0 or index == len(image_files):
-
-                print(
-                    f"Processed: "
-                    f"{index}/{len(image_files)}"
-                )
-
-        except Exception as error:
-
-            print(
-                f"Error processing "
-                f"{image_path.name}: {error}"
-            )
-
-    if not scores:
+        scores.append(score)
 
         print(
-            f"[{category}] "
-            f"No valid scores generated."
+            f"[{i:3d}/{len(images)}] "
+            f"{image_path.name:<20} "
+            f"score={score:.6f}"
         )
 
-        return False
-
-    scores = np.array(
+    scores = np.asarray(
         scores,
-        dtype=np.float64
+        dtype=np.float32
     )
 
-    # ========================================================
-    # SCORE STATISTICS
-    # ========================================================
-
-    minimum = float(
-        np.min(scores)
-    )
-
-    maximum = float(
-        np.max(scores)
-    )
-
-    mean = float(
-        np.mean(scores)
-    )
-
-    median = float(
-        np.median(scores)
-    )
-
-    percentile = float(
+    percentile_score = float(
         np.percentile(
             scores,
-            GOOD_PERCENTILE
+            PERCENTILE
         )
     )
 
-    # ========================================================
-    # FINAL THRESHOLD
-    # ========================================================
-    #
-    # Example:
-    #
-    # 99th percentile = 0.110
-    #
-    # safety margin = 10%
-    #
-    # threshold = 0.121
-    #
-    # This prevents GOOD images close to the boundary from
-    # being immediately classified as defective.
-    #
-    # ========================================================
-
     threshold = (
-        percentile
-        * SAFETY_MARGIN
+        percentile_score
+        * SAFETY_FACTOR
     )
 
-    # Never allow a threshold of zero.
-    threshold = max(
-        threshold,
-        0.000001
-    )
-
-    # ========================================================
-    # SAVE THRESHOLD
-    # ========================================================
-
-    threshold_file = (
+    output_dir = (
         THRESHOLD_DIR
-        / f"{category}_threshold.txt"
+        / category
     )
 
-    threshold_file.write_text(
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    output_file = (
+        output_dir
+        / "threshold.txt"
+    )
+
+    output_file.write_text(
         f"{threshold:.6f}",
         encoding="utf-8"
     )
 
-    # ========================================================
-    # DISPLAY RESULTS
-    # ========================================================
-
-    print("\nScore Statistics")
-    print("-" * 50)
-
+    print()
     print(
-        f"Minimum           : {minimum:.6f}"
+        f"Minimum score : {np.min(scores):.6f}"
     )
 
     print(
-        f"Maximum           : {maximum:.6f}"
+        f"Maximum score : {np.max(scores):.6f}"
     )
 
     print(
-        f"Mean              : {mean:.6f}"
+        f"Mean score    : {np.mean(scores):.6f}"
     )
 
     print(
-        f"Median            : {median:.6f}"
+        f"99th percentile: {percentile_score:.6f}"
     )
 
     print(
-        f"{GOOD_PERCENTILE:.0f}th Percentile   : "
-        f"{percentile:.6f}"
+        f"FINAL THRESHOLD: {threshold:.6f}"
     )
 
     print(
-        f"Safety Margin     : "
-        f"{SAFETY_MARGIN:.2f}x"
+        f"Saved to: {output_file}"
     )
 
-    print(
-        f"FINAL THRESHOLD   : "
-        f"{threshold:.6f}"
-    )
+    return threshold
 
-    print(
-        f"\nSaved to:"
-    )
-
-    print(threshold_file)
-
-    return True
-
-
-# ============================================================
-# MAIN
-# ============================================================
 
 def main():
 
-    print("\n")
+    print()
     print("=" * 70)
     print("VISIONINSPECT AI")
-    print("CATEGORY-SPECIFIC THRESHOLD CALIBRATION")
+    print("PATCHCORE THRESHOLD CALIBRATION")
     print("=" * 70)
 
-    print(
-        "\nScoring method:"
+    THRESHOLD_DIR.mkdir(
+        parents=True,
+        exist_ok=True
     )
 
-    print(
-        "15% Mean Error"
-    )
-
-    print(
-        "35% Top 5% Error"
-    )
-
-    print(
-        "40% Top 1% Error"
-    )
-
-    print(
-        "10% Maximum Error"
-    )
-
-    print(
-        f"\nGOOD percentile: "
-        f"{GOOD_PERCENTILE}%"
-    )
-
-    print(
-        f"Safety margin: "
-        f"{SAFETY_MARGIN}x"
-    )
-
-    successful = []
-    failed = []
+    results = {}
 
     for category in CATEGORIES:
 
         try:
 
-            success = calibrate_category(
+            threshold = calibrate_category(
                 category
             )
 
-            if success:
-
-                successful.append(
-                    category
-                )
-
-            else:
-
-                failed.append(
-                    category
-                )
+            results[category] = threshold
 
         except Exception as error:
 
+            print()
             print(
-                f"\n[{category}] "
-                f"Calibration failed:"
+                f"FAILED: {category}"
             )
 
-            print(error)
-
-            failed.append(
-                category
+            print(
+                f"ERROR: {error}"
             )
 
-    # ========================================================
-    # FINAL SUMMARY
-    # ========================================================
-
-    print("\n")
+    print()
     print("=" * 70)
-    print("CALIBRATION COMPLETE")
+    print("FINAL THRESHOLD SUMMARY")
     print("=" * 70)
 
+    for category, threshold in results.items():
+
+        print(
+            f"{category:<15} "
+            f"{threshold:.6f}"
+        )
+
+    print()
     print(
         f"Successful: "
-        f"{len(successful)}"
+        f"{len(results)}/{len(CATEGORIES)}"
     )
 
-    print(
-        f"Failed: "
-        f"{len(failed)}"
-    )
-
-    if successful:
-
-        print(
-            "\nSuccessfully calibrated:"
-        )
-
-        for category in successful:
-
-            threshold_file = (
-                THRESHOLD_DIR
-                / f"{category}_threshold.txt"
-            )
-
-            if threshold_file.exists():
-
-                value = (
-                    threshold_file
-                    .read_text()
-                    .strip()
-                )
-
-                print(
-                    f"  {category:12s} "
-                    f"-> {value}"
-                )
-
-    if failed:
-
-        print(
-            "\nFailed categories:"
-        )
-
-        for category in failed:
-
-            print(
-                f"  {category}"
-            )
-
-    print(
-        "\nThreshold files are stored in:"
-    )
-
-    print(THRESHOLD_DIR)
-
-    print(
-        "\nNo model retraining was performed."
-    )
+    print("=" * 70)
 
 
 if __name__ == "__main__":

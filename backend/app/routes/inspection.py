@@ -11,7 +11,6 @@ from pathlib import Path
 import shutil
 import uuid
 import time
-import json
 
 from app.database import get_database
 from app.models.user import User
@@ -27,6 +26,14 @@ from app.ai.patchcore_model import (
     predict_with_feature_bank
 )
 
+from app.services.quality_service import (
+    calculate_severity
+)
+
+
+# ============================================================
+# ROUTER
+# ============================================================
 
 router = APIRouter(
     prefix="/inspections",
@@ -35,30 +42,49 @@ router = APIRouter(
 
 
 # ============================================================
-# PROJECT PATHS
+# PROJECT ROOT
 # ============================================================
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[3]
+)
 
-UPLOAD_DIR = PROJECT_ROOT / "backend" / "uploads"
+
+# ============================================================
+# UPLOAD DIRECTORY
+# ============================================================
+
+UPLOAD_DIR = (
+    PROJECT_ROOT
+    / "backend"
+    / "uploads"
+)
 
 UPLOAD_DIR.mkdir(
     parents=True,
     exist_ok=True
 )
 
-THRESHOLD_FILE = (
+
+# ============================================================
+# THRESHOLD DIRECTORY
+# ============================================================
+
+THRESHOLD_DIR = (
     PROJECT_ROOT
     / "models"
-    / "patchcore_thresholds.json"
+    / "thresholds"
 )
 
 
 # ============================================================
-# SUPPORTED PRODUCT CATEGORIES
+# CATEGORIES
 # ============================================================
 
 CATEGORIES = [
+
     "bottle",
     "cable",
     "capsule",
@@ -78,104 +104,139 @@ CATEGORIES = [
 
 
 # ============================================================
-# LOAD CALIBRATED PATCHCORE THRESHOLDS
+# LOAD CATEGORY THRESHOLD
 # ============================================================
 
-def load_patchcore_thresholds():
+def get_category_threshold(
+    category: str
+):
 
-    if not THRESHOLD_FILE.exists():
+    category = (
+        category
+        .strip()
+        .lower()
+    )
+
+    if category not in CATEGORIES:
+
+        raise ValueError(
+            f"Unsupported product category: "
+            f"{category}"
+        )
+
+    threshold_file = (
+        THRESHOLD_DIR
+        / category
+        / "threshold.txt"
+    )
+
+    if not threshold_file.exists():
 
         raise FileNotFoundError(
-            "PatchCore threshold file not found: "
-            f"{THRESHOLD_FILE}"
+            f"Threshold file not found for "
+            f"category '{category}'. "
+            f"Expected: {threshold_file}"
         )
 
-    with open(
-        THRESHOLD_FILE,
-        "r",
-        encoding="utf-8"
-    ) as file:
+    try:
 
-        thresholds = json.load(file)
-
-    return thresholds
-
-
-# ============================================================
-# GET CATEGORY-SPECIFIC THRESHOLD
-# ============================================================
-
-def get_category_threshold(category: str):
-
-    thresholds = load_patchcore_thresholds()
-
-    categories_data = thresholds.get("categories")
-
-    if not isinstance(categories_data, dict):
-
-        raise ValueError(
-            "Invalid PatchCore threshold file format. "
-            "'categories' section is missing."
-        )
-
-    if category not in categories_data:
-
-        raise ValueError(
-            f"No calibrated threshold found "
-            f"for category: {category}"
-        )
-
-    category_data = categories_data[category]
-
-    if isinstance(category_data, dict):
-
-        threshold = category_data.get("threshold")
-
-        if threshold is None:
-
-            raise ValueError(
-                f"Threshold missing for "
-                f"category: {category}"
+        threshold_text = (
+            threshold_file
+            .read_text(
+                encoding="utf-8"
             )
+            .strip()
+        )
 
-        return float(threshold)
+        threshold = float(
+            threshold_text
+        )
 
-    return float(category_data)
+    except Exception as error:
+
+        raise ValueError(
+            f"Invalid threshold for "
+            f"{category}: {error}"
+        )
+
+    if threshold <= 0:
+
+        raise ValueError(
+            f"Threshold must be greater than zero "
+            f"for {category}. "
+            f"Current value: {threshold}"
+        )
+
+    print(
+        "=" * 70
+    )
+
+    print(
+        "CALIBRATED THRESHOLD"
+    )
+
+    print(
+        f"Category : {category}"
+    )
+
+    print(
+        f"Threshold: {threshold:.12f}"
+    )
+
+    print(
+        f"File     : {threshold_file}"
+    )
+
+    print(
+        "=" * 70
+    )
+
+    return threshold
 
 
 # ============================================================
-# GET ALL USER INSPECTIONS
+# GET INSPECTIONS
 # ============================================================
 
 @router.get("/")
 def get_inspections(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(
+        get_current_user
+    )
 ):
 
     try:
 
         db = get_database()
 
-        inspections_collection = db["inspections"]
+        collection = (
+            db["inspections"]
+        )
 
-        # MongoDB-compatible user access
-        user_id = str(current_user["id"])
+        user_id = str(
+            current_user["id"]
+        )
 
         inspections = list(
-            inspections_collection.find(
+            collection.find(
                 {
-                    "user_id": user_id
+                    "user_id":
+                        user_id
                 }
-            ).sort(
+            )
+            .sort(
                 "created_at",
                 -1
             )
         )
 
-        # Convert MongoDB ObjectId to string
         for inspection in inspections:
 
             inspection["_id"] = str(
+                inspection["_id"]
+            )
+
+            inspection["id"] = (
                 inspection["_id"]
             )
 
@@ -193,7 +254,7 @@ def get_inspections(
 
 
 # ============================================================
-# UPLOAD + PATCHCORE AI INSPECTION
+# UPLOAD INSPECTION
 # ============================================================
 
 @router.post("/upload")
@@ -203,17 +264,22 @@ async def upload_inspection(
 
     category: str = Form(...),
 
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(
+        get_current_user
+    )
 ):
 
     start_time = time.time()
 
-
     # ========================================================
-    # CATEGORY VALIDATION
+    # CATEGORY
     # ========================================================
 
-    category = category.strip().lower()
+    category = (
+        category
+        .strip()
+        .lower()
+    )
 
     if category not in CATEGORIES:
 
@@ -225,16 +291,16 @@ async def upload_inspection(
             )
         )
 
-
     # ========================================================
-    # FILE TYPE VALIDATION
+    # FILE TYPE
     # ========================================================
 
-    allowed_types = [
+    allowed_types = {
+
         "image/jpeg",
         "image/png",
         "image/bmp"
-    ]
+    }
 
     if file.content_type not in allowed_types:
 
@@ -246,50 +312,54 @@ async def upload_inspection(
             )
         )
 
-
     # ========================================================
-    # ORIGINAL FILE NAME
+    # FILE NAME
     # ========================================================
 
     original_filename = (
         file.filename
-        or "product_image.png"
+        or
+        "product_image.png"
     )
 
-
-    # ========================================================
-    # FILE EXTENSION
-    # ========================================================
-
-    file_extension = (
-        Path(original_filename)
+    extension = (
+        Path(
+            original_filename
+        )
         .suffix
         .lower()
     )
 
-    if not file_extension:
+    if extension not in [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".bmp"
+    ]:
 
-        file_extension = ".png"
-
-
-    # ========================================================
-    # UNIQUE FILE NAME
-    # ========================================================
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Unsupported image extension."
+            )
+        )
 
     unique_filename = (
         "inspection_"
-        f"{uuid.uuid4().hex}"
-        f"{file_extension}"
+        +
+        uuid.uuid4().hex
+        +
+        extension
     )
 
     file_path = (
         UPLOAD_DIR
-        / unique_filename
+        /
+        unique_filename
     )
 
-
     # ========================================================
-    # SAVE UPLOADED IMAGE
+    # SAVE FILE
     # ========================================================
 
     try:
@@ -314,7 +384,6 @@ async def upload_inspection(
             )
         )
 
-
     # ========================================================
     # LOAD IMAGE
     # ========================================================
@@ -328,6 +397,7 @@ async def upload_inspection(
     except Exception as error:
 
         if file_path.exists():
+
             file_path.unlink()
 
         raise HTTPException(
@@ -338,9 +408,8 @@ async def upload_inspection(
             )
         )
 
-
     # ========================================================
-    # IMAGE QUALITY ANALYSIS
+    # IMAGE QUALITY
     # ========================================================
 
     try:
@@ -354,14 +423,13 @@ async def upload_inspection(
         raise HTTPException(
             status_code=400,
             detail=(
-                "Image quality analysis "
-                f"failed: {error}"
+                "Image quality analysis failed: "
+                f"{error}"
             )
         )
 
-
     # ========================================================
-    # IMAGE PREPROCESSING
+    # PREPROCESSING
     # ========================================================
 
     try:
@@ -375,14 +443,13 @@ async def upload_inspection(
         raise HTTPException(
             status_code=400,
             detail=(
-                "Image preprocessing "
-                f"failed: {error}"
+                "Image preprocessing failed: "
+                f"{error}"
             )
         )
 
-
     # ========================================================
-    # LOAD CATEGORY-SPECIFIC THRESHOLD
+    # THRESHOLD
     # ========================================================
 
     try:
@@ -396,21 +463,22 @@ async def upload_inspection(
         raise HTTPException(
             status_code=500,
             detail=(
-                "Unable to load PatchCore "
+                "Unable to load calibrated "
                 f"threshold: {error}"
             )
         )
 
-
     # ========================================================
-    # PATCHCORE AI PREDICTION
+    # PATCHCORE
     # ========================================================
 
     try:
 
-        prediction = predict_with_feature_bank(
-            str(file_path),
-            category
+        prediction = (
+            predict_with_feature_bank(
+                str(file_path),
+                category
+            )
         )
 
     except Exception as error:
@@ -418,14 +486,13 @@ async def upload_inspection(
         raise HTTPException(
             status_code=500,
             detail=(
-                "PatchCore AI prediction failed: "
+                "PatchCore prediction failed: "
                 f"{error}"
             )
         )
 
-
     # ========================================================
-    # VALIDATE PATCHCORE RESPONSE
+    # VALIDATE RESPONSE
     # ========================================================
 
     if not isinstance(
@@ -436,14 +503,12 @@ async def upload_inspection(
         raise HTTPException(
             status_code=500,
             detail=(
-                "Invalid response returned "
-                "by PatchCore model."
+                "PatchCore returned an invalid response."
             )
         )
 
-
     # ========================================================
-    # GET ANOMALY SCORE
+    # SCORE
     # ========================================================
 
     anomaly_score = prediction.get(
@@ -452,24 +517,13 @@ async def upload_inspection(
 
     if anomaly_score is None:
 
-        anomaly_score = prediction.get(
-            "score"
-        )
-
-    if anomaly_score is None:
-
         raise HTTPException(
             status_code=500,
             detail=(
                 "PatchCore did not return "
-                "anomaly score."
+                "anomaly_score."
             )
         )
-
-
-    # ========================================================
-    # CONVERT SCORE TO FLOAT
-    # ========================================================
 
     try:
 
@@ -482,14 +536,12 @@ async def upload_inspection(
         raise HTTPException(
             status_code=500,
             detail=(
-                "Invalid anomaly score "
-                "returned by PatchCore."
+                "Invalid anomaly score."
             )
         )
 
-
     # ========================================================
-    # CLASSIFY NORMAL / DEFECT
+    # FINAL CLASSIFICATION
     # ========================================================
 
     if anomaly_score >= threshold:
@@ -500,9 +552,40 @@ async def upload_inspection(
 
         result = "NORMAL"
 
+    # ========================================================
+    # QUALITY ASSESSMENT
+    # ========================================================
+
+    try:
+
+        quality_assessment = (
+            calculate_severity(
+                anomaly_score=
+                    anomaly_score,
+
+                threshold=
+                    threshold,
+
+                result=
+                    result,
+
+                category=
+                    category
+            )
+        )
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Quality assessment failed: "
+                f"{error}"
+            )
+        )
 
     # ========================================================
-    # MODEL INFORMATION
+    # MODEL
     # ========================================================
 
     model_name = prediction.get(
@@ -515,90 +598,173 @@ async def upload_inspection(
         "cpu"
     )
 
-
     # ========================================================
     # PROCESSING TIME
     # ========================================================
 
     processing_time = (
         time.time()
-        - start_time
+        -
+        start_time
     )
 
-
     # ========================================================
-    # MONGODB RECORD
+    # DATABASE DOCUMENT
     # ========================================================
 
     inspection_document = {
 
-        "image_path": str(
-            file_path
-        ),
+        "image_path":
+            str(file_path),
 
-        "filename": unique_filename,
+        "filename":
+            unique_filename,
 
-        "category": category,
+        "category":
+            category,
 
-        "status": "completed",
+        "status":
+            "completed",
 
-        "result": result,
+        "result":
+            result,
 
-        "anomaly_score": anomaly_score,
+        "anomaly_score":
+            anomaly_score,
 
-        "threshold": threshold,
+        "threshold":
+            threshold,
 
-        "user_id": str(
-            current_user["id"]
-        ),
+        "quality_assessment":
+            quality_assessment,
 
-        "uploaded_by": current_user["name"],
+        "user_id":
+            str(
+                current_user["id"]
+            ),
 
-        "model": model_name,
+        "uploaded_by":
+            current_user["name"],
 
-        "device": device,
+        "model":
+            model_name,
+
+        "device":
+            device,
+
+        # ----------------------------------------------------
+        # IMAGE QUALITY
+        # ----------------------------------------------------
 
         "image_quality": {
 
-            "width": quality["width"],
+            "width":
+                quality["width"],
 
-            "height": quality["height"],
+            "height":
+                quality["height"],
 
-            "brightness": quality["brightness"],
+            "brightness":
+                quality["brightness"],
 
-            "sharpness": quality["sharpness"]
+            "sharpness":
+                quality["sharpness"]
         },
+
+        # ----------------------------------------------------
+        # PATCHCORE DETAILS
+        # ----------------------------------------------------
+
+        "patchcore": {
+
+            "max_distance":
+                prediction.get(
+                    "max_distance"
+                ),
+
+            "mean_distance":
+                prediction.get(
+                    "mean_distance"
+                ),
+
+            "top_1_distance":
+                prediction.get(
+                    "top_1_distance"
+                ),
+
+            "top_5_distance":
+                prediction.get(
+                    "top_5_distance"
+                ),
+
+            "top_10_distance":
+                prediction.get(
+                    "top_10_distance"
+                ),
+
+            "defect_area_percentage":
+                prediction.get(
+                    "defect_area_percentage"
+                ),
+
+            "location":
+                prediction.get(
+                    "location"
+                ),
+
+            "bounding_box":
+                prediction.get(
+                    "bounding_box"
+                )
+        },
+
+        # ----------------------------------------------------
+        # PREPROCESSING
+        # ----------------------------------------------------
 
         "preprocessing": {
 
-            "output_size": list(
-                processed_image.shape
-            ),
+            "output_size":
+                list(
+                    processed_image.shape
+                ),
 
-            "normalization": "0-1"
+            "normalization":
+                "0-1"
         },
 
-        "processing_time_seconds": round(
-            processing_time,
-            4
-        ),
+        # ----------------------------------------------------
+        # PROCESSING TIME
+        # ----------------------------------------------------
 
-        "created_at": time.time()
+        "processing_time_seconds":
+            round(
+                processing_time,
+                4
+            ),
+
+        # ----------------------------------------------------
+        # CREATED
+        # ----------------------------------------------------
+
+        "created_at":
+            time.time()
     }
 
-
     # ========================================================
-    # SAVE TO MONGODB
+    # SAVE DATABASE
     # ========================================================
 
     try:
 
         db = get_database()
 
-        inspections_collection = db["inspections"]
+        collection = (
+            db["inspections"]
+        )
 
         insert_result = (
-            inspections_collection.insert_one(
+            collection.insert_one(
                 inspection_document
             )
         )
@@ -612,14 +778,13 @@ async def upload_inspection(
         raise HTTPException(
             status_code=500,
             detail=(
-                "Failed to save inspection "
-                f"record: {error}"
+                "Failed to save inspection record: "
+                f"{error}"
             )
         )
 
-
     # ========================================================
-    # FINAL RESPONSE
+    # RESPONSE
     # ========================================================
 
     return {
@@ -649,10 +814,10 @@ async def upload_inspection(
             ),
 
         "threshold":
-            round(
-                threshold,
-                6
-            ),
+            threshold,
+
+        "quality_assessment":
+            quality_assessment,
 
         "uploaded_by":
             current_user["name"],
@@ -683,6 +848,49 @@ async def upload_inspection(
                 quality["sharpness"]
         },
 
+        "patchcore": {
+
+            "max_distance":
+                prediction.get(
+                    "max_distance"
+                ),
+
+            "mean_distance":
+                prediction.get(
+                    "mean_distance"
+                ),
+
+            "top_1_distance":
+                prediction.get(
+                    "top_1_distance"
+                ),
+
+            "top_5_distance":
+                prediction.get(
+                    "top_5_distance"
+                ),
+
+            "top_10_distance":
+                prediction.get(
+                    "top_10_distance"
+                ),
+
+            "defect_area_percentage":
+                prediction.get(
+                    "defect_area_percentage"
+                ),
+
+            "location":
+                prediction.get(
+                    "location"
+                ),
+
+            "bounding_box":
+                prediction.get(
+                    "bounding_box"
+                )
+        },
+
         "preprocessing": {
 
             "output_size":
@@ -700,4 +908,3 @@ async def upload_inspection(
                 4
             )
     }
-
