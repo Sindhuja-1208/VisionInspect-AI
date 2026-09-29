@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from app.routes import reports
 
 from app.routes import auth
 from app.routes import inspection
@@ -90,7 +91,9 @@ app.include_router(
 app.include_router(
     analytics.router
 )
-
+app.include_router(
+    reports.router
+)
 
 # ============================================================
 # ROOT

@@ -5,6 +5,8 @@ const API_BASE_URL = "http://localhost:8000";
 
 export default function Analytics() {
   const [data, setData] = useState(null);
+  const [trendData, setTrendData] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -21,18 +23,43 @@ export default function Analytics() {
         );
       }
 
-      const response = await fetch(
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
+
+      // ========================================================
+      // LOAD SUMMARY
+      // ========================================================
+
+      const summaryResponse = await fetch(
         `${API_BASE_URL}/analytics/summary`,
         {
           method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
         }
       );
 
-      if (response.status === 401) {
+      // ========================================================
+      // LOAD TRENDS
+      // ========================================================
+
+      const trendsResponse = await fetch(
+        `${API_BASE_URL}/analytics/trends`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
+
+      // ========================================================
+      // AUTH ERROR
+      // ========================================================
+
+      if (
+        summaryResponse.status === 401 ||
+        trendsResponse.status === 401
+      ) {
         localStorage.removeItem("access_token");
 
         throw new Error(
@@ -40,33 +67,77 @@ export default function Analytics() {
         );
       }
 
-      if (!response.ok) {
-        let message = `Analytics request failed: ${response.status}`;
+      // ========================================================
+      // SUMMARY ERROR
+      // ========================================================
+
+      if (!summaryResponse.ok) {
+        let message = `Analytics request failed: ${summaryResponse.status}`;
 
         try {
-          const errorData = await response.json();
+          const errorData =
+            await summaryResponse.json();
 
           if (errorData.detail) {
             message = errorData.detail;
           }
         } catch {
-          // Keep default error message
+          // Keep default error
         }
 
         throw new Error(message);
       }
 
-      const result = await response.json();
+      // ========================================================
+      // TREND ERROR
+      // ========================================================
 
-      setData(result);
+      if (!trendsResponse.ok) {
+        let message = `Trend analytics request failed: ${trendsResponse.status}`;
+
+        try {
+          const errorData =
+            await trendsResponse.json();
+
+          if (errorData.detail) {
+            message = errorData.detail;
+          }
+        } catch {
+          // Keep default error
+        }
+
+        throw new Error(message);
+      }
+
+      // ========================================================
+      // PARSE DATA
+      // ========================================================
+
+      const summaryResult =
+        await summaryResponse.json();
+
+      const trendsResult =
+        await trendsResponse.json();
+
+      setData(summaryResult);
+      setTrendData(trendsResult);
+
     } catch (err) {
-      console.error("Analytics error:", err);
+
+      console.error(
+        "Analytics error:",
+        err
+      );
 
       setError(
-        err?.message || "Failed to load analytics"
+        err?.message ||
+          "Failed to load analytics"
       );
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
@@ -79,17 +150,24 @@ export default function Analytics() {
      ============================================================ */
 
   if (loading) {
+
     return (
       <div className="analytics-page">
+
         <div className="analytics-loading">
+
           <div className="loading-spinner"></div>
 
-          <h2>Loading Production Analytics</h2>
+          <h2>
+            Loading Production Analytics
+          </h2>
 
           <p>
             Processing inspection quality data...
           </p>
+
         </div>
+
       </div>
     );
   }
@@ -99,14 +177,23 @@ export default function Analytics() {
      ============================================================ */
 
   if (error) {
+
     return (
       <div className="analytics-page">
+
         <div className="analytics-error">
-          <div className="error-icon">!</div>
 
-          <h2>Unable to Load Analytics</h2>
+          <div className="error-icon">
+            !
+          </div>
 
-          <p>{error}</p>
+          <h2>
+            Unable to Load Analytics
+          </h2>
+
+          <p>
+            {error}
+          </p>
 
           <button
             className="retry-button"
@@ -114,7 +201,9 @@ export default function Analytics() {
           >
             Retry
           </button>
+
         </div>
+
       </div>
     );
   }
@@ -124,20 +213,27 @@ export default function Analytics() {
      ============================================================ */
 
   if (!data) {
+
     return (
       <div className="analytics-page">
+
         <div className="analytics-empty">
+
           <div className="analytics-empty-icon">
             ◇
           </div>
 
-          <h3>No Analytics Data</h3>
+          <h3>
+            No Analytics Data
+          </h3>
 
           <p>
             Complete an inspection to generate
             production analytics.
           </p>
+
         </div>
+
       </div>
     );
   }
@@ -170,7 +266,8 @@ export default function Analytics() {
     data.average_severity_score ?? 0
   );
 
-  const severity = data.severity || {};
+  const severity =
+    data.severity || {};
 
   const criticalCount = Number(
     severity.critical ?? 0
@@ -209,35 +306,84 @@ export default function Analytics() {
     data.category_average_severity || {};
 
   /* ============================================================
+     TREND DATA
+     ============================================================ */
+
+  const dailyTrend =
+    trendData?.daily_trend || [];
+
+  const categoryTrend =
+    trendData?.category_trend || [];
+
+  const trendSummary =
+    trendData?.summary || {};
+
+  const trendTotal =
+    Number(
+      trendSummary.total_inspections ??
+        totalInspections
+    );
+
+  const trendNormal =
+    Number(
+      trendSummary.normal_inspections ??
+        normalInspections
+    );
+
+  const trendDefects =
+    Number(
+      trendSummary.defective_inspections ??
+        defectInspections
+    );
+
+  const trendNormalRate =
+    Number(
+      trendSummary.normal_rate ??
+        normalRate
+    );
+
+  const trendDefectRate =
+    Number(
+      trendSummary.defect_rate ??
+        defectRate
+    );
+
+  /* ============================================================
      SEVERITY
      ============================================================ */
 
   const severityRows = [
+
     {
       name: "Critical",
       value: criticalCount,
       className: "critical",
     },
+
     {
       name: "High",
       value: highCount,
       className: "high",
     },
+
     {
       name: "Medium",
       value: mediumCount,
       className: "medium",
     },
+
     {
       name: "Low",
       value: lowCount,
       className: "low",
     },
+
     {
       name: "Pending",
       value: pendingCount,
       className: "pending",
     },
+
   ];
 
   const severityTotal =
@@ -256,45 +402,60 @@ export default function Analytics() {
 
   /* ============================================================
      CATEGORY ROWS
-
-     IMPORTANT:
-     No useMemo here.
-
-     This avoids the React Hooks ordering problem.
      ============================================================ */
 
-  const categoryRows = Object.entries(
-    categoryCounts
-  )
-    .map(([category, count]) => {
-      const inspections = Number(
-        count ?? 0
-      );
+  const categoryRows =
+    Object.entries(
+      categoryCounts
+    )
+      .map(([category, count]) => {
 
-      const defects = Number(
-        categoryDefects[category] ?? 0
-      );
+        const inspections =
+          Number(count ?? 0);
 
-      const categoryRate = Number(
-        categoryDefectRates[category] ?? 0
-      );
+        const defects =
+          Number(
+            categoryDefects[
+              category
+            ] ?? 0
+          );
 
-      const categorySeverity = Number(
-        categoryAverageSeverity[category] ?? 0
-      );
+        const categoryRate =
+          Number(
+            categoryDefectRates[
+              category
+            ] ?? 0
+          );
 
-      return {
-        category,
-        inspections,
-        defects,
-        defectRate: categoryRate,
-        severity: categorySeverity,
-      };
-    })
-    .sort(
-      (a, b) =>
-        b.defectRate - a.defectRate
-    );
+        const categorySeverity =
+          Number(
+            categoryAverageSeverity[
+              category
+            ] ?? 0
+          );
+
+        return {
+
+          category,
+
+          inspections,
+
+          defects,
+
+          defectRate:
+            categoryRate,
+
+          severity:
+            categorySeverity,
+
+        };
+
+      })
+      .sort(
+        (a, b) =>
+          b.defectRate -
+          a.defectRate
+      );
 
   const highestDefectCategory =
     categoryRows.length > 0
@@ -302,10 +463,34 @@ export default function Analytics() {
       : null;
 
   /* ============================================================
+     TREND HELPERS
+     ============================================================ */
+
+  const maxDailyTotal = Math.max(
+    ...dailyTrend.map(
+      (item) =>
+        Number(item.total ?? 0)
+    ),
+    1
+  );
+
+  const maxCategoryDefectRate =
+    Math.max(
+      ...categoryTrend.map(
+        (item) =>
+          Number(
+            item.defect_rate ?? 0
+          )
+      ),
+      1
+    );
+
+  /* ============================================================
      RENDER
      ============================================================ */
 
   return (
+
     <div className="analytics-page">
 
       {/* ========================================================
@@ -335,11 +520,13 @@ export default function Analytics() {
           className="refresh-button"
           onClick={loadAnalytics}
         >
+
           <span className="refresh-icon">
             ↻
           </span>
 
           Refresh
+
         </button>
 
       </header>
@@ -483,10 +670,7 @@ export default function Analytics() {
 
       <section className="analytics-two-column">
 
-
-        {/* ======================================================
-            QUALITY OVERVIEW
-            ====================================================== */}
+        {/* QUALITY OVERVIEW */}
 
         <div className="analytics-panel quality-overview-panel">
 
@@ -513,7 +697,6 @@ export default function Analytics() {
 
           <div className="quality-overview-content">
 
-
             {/* QUALITY RING */}
 
             <div
@@ -521,14 +704,22 @@ export default function Analytics() {
               style={{
                 background: `conic-gradient(
                   #16a34a 0deg,
-                  #16a34a ${Math.min(
-                    100,
-                    Math.max(0, normalRate)
-                  ) * 3.6}deg,
+                  #16a34a ${
+                    Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        normalRate
+                      )
+                    ) * 3.6
+                  }deg,
                   #e9eef5 ${
                     Math.min(
                       100,
-                      Math.max(0, normalRate)
+                      Math.max(
+                        0,
+                        normalRate
+                      )
                     ) * 3.6
                   }deg,
                   #e9eef5 360deg
@@ -554,9 +745,6 @@ export default function Analytics() {
             {/* QUALITY METRICS */}
 
             <div className="quality-metrics">
-
-
-              {/* NORMAL */}
 
               <div className="quality-metric">
 
@@ -597,8 +785,6 @@ export default function Analytics() {
 
               </div>
 
-
-              {/* DEFECT */}
 
               <div className="quality-metric">
 
@@ -644,8 +830,6 @@ export default function Analytics() {
           </div>
 
 
-          {/* QUALITY FOOTER */}
-
           <div className="quality-overview-footer">
 
             <div>
@@ -689,9 +873,7 @@ export default function Analytics() {
         </div>
 
 
-        {/* ======================================================
-            SEVERITY DISTRIBUTION
-            ====================================================== */}
+        {/* SEVERITY */}
 
         <div className="analytics-panel severity-panel">
 
@@ -718,74 +900,80 @@ export default function Analytics() {
 
           <div className="severity-chart">
 
-            {severityRows.map((item) => {
+            {severityRows.map(
+              (item) => {
 
-              const percentage =
-                severityTotal > 0
-                  ? (item.value /
-                      severityTotal) *
-                    100
-                  : 0;
+                const percentage =
+                  severityTotal > 0
+                    ? (
+                        item.value /
+                        severityTotal
+                      ) * 100
+                    : 0;
 
-              const barWidth =
-                (item.value /
-                  maxSeverityValue) *
-                100;
+                const barWidth =
+                  (
+                    item.value /
+                    maxSeverityValue
+                  ) * 100;
 
-              return (
-                <div
-                  className="severity-row"
-                  key={item.name}
-                >
+                return (
 
-                  <div className="severity-row-header">
+                  <div
+                    className="severity-row"
+                    key={item.name}
+                  >
 
-                    <div className="severity-name">
+                    <div className="severity-row-header">
 
-                      <span
-                        className={`severity-indicator ${item.className}`}
-                      ></span>
+                      <div className="severity-name">
 
-                      <strong>
-                        {item.name}
-                      </strong>
+                        <span
+                          className={`severity-indicator ${item.className}`}
+                        ></span>
+
+                        <strong>
+                          {item.name}
+                        </strong>
+
+                      </div>
+
+                      <div className="severity-numbers">
+
+                        <strong>
+                          {item.value}
+                        </strong>
+
+                        <span>
+                          {percentage.toFixed(1)}%
+                        </span>
+
+                      </div>
 
                     </div>
 
-                    <div className="severity-numbers">
+                    <div className="severity-bar">
 
-                      <strong>
-                        {item.value}
-                      </strong>
-
-                      <span>
-                        {percentage.toFixed(1)}%
-                      </span>
+                      <div
+                        className={`severity-fill ${item.className}`}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.max(
+                              0,
+                              barWidth
+                            )
+                          )}%`,
+                        }}
+                      />
 
                     </div>
 
                   </div>
 
-                  <div className="severity-bar">
-
-                    <div
-                      className={`severity-fill ${item.className}`}
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            barWidth
-                          )
-                        )}%`,
-                      }}
-                    />
-
-                  </div>
-
-                </div>
-              );
-            })}
+                );
+              }
+            )}
 
           </div>
 
@@ -899,161 +1087,579 @@ export default function Analytics() {
 
           <div className="category-visual-list">
 
-            {categoryRows.map((item) => {
+            {categoryRows.map(
+              (item) => {
 
-              const inspectionPercentage =
-                totalInspections > 0
-                  ? (item.inspections /
-                      totalInspections) *
-                    100
-                  : 0;
+                const inspectionPercentage =
+                  totalInspections > 0
+                    ? (
+                        item.inspections /
+                        totalInspections
+                      ) * 100
+                    : 0;
 
-              const defectPercentage =
-                Math.min(
-                  100,
-                  Math.max(
-                    0,
-                    item.defectRate
-                  )
-                );
+                const defectPercentage =
+                  Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      item.defectRate
+                    )
+                  );
 
-              return (
+                return (
 
-                <div
-                  className="category-visual-row"
-                  key={item.category}
-                >
+                  <div
+                    className="category-visual-row"
+                    key={item.category}
+                  >
 
-                  {/* CATEGORY */}
+                    <div className="category-name-cell">
 
-                  <div className="category-name-cell">
+                      <div className="category-symbol">
+                        ◈
+                      </div>
 
-                    <div className="category-symbol">
-                      ◈
+                      <div>
+
+                        <strong>
+                          {formatCategory(
+                            item.category
+                          )}
+                        </strong>
+
+                        <span>
+                          {item.inspections} inspections
+                        </span>
+
+                      </div>
+
                     </div>
 
-                    <div>
+
+                    <div className="category-volume">
+
+                      <div className="category-value-line">
+
+                        <span>
+                          Inspection Volume
+                        </span>
+
+                        <strong>
+                          {inspectionPercentage.toFixed(
+                            1
+                          )}%
+                        </strong>
+
+                      </div>
+
+                      <div className="category-mini-bar">
+
+                        <div
+                          className="category-volume-fill"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              inspectionPercentage
+                            )}%`,
+                          }}
+                        />
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="category-defect-info">
+
+                      <span>
+                        DEFECTS
+                      </span>
 
                       <strong>
-                        {formatCategory(
-                          item.category
+                        {item.defects}
+                      </strong>
+
+                    </div>
+
+
+                    <div className="category-rate-info">
+
+                      <div>
+
+                        <span>
+                          DEFECT RATE
+                        </span>
+
+                        <strong>
+                          {item.defectRate.toFixed(
+                            1
+                          )}%
+                        </strong>
+
+                      </div>
+
+                      <div className="category-rate-bar">
+
+                        <div
+                          className="category-rate-fill"
+                          style={{
+                            width: `${defectPercentage}%`,
+                          }}
+                        />
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="category-severity-info">
+
+                      <span>
+                        AVG SEVERITY
+                      </span>
+
+                      <strong>
+                        {item.severity.toFixed(
+                          1
                         )}
                       </strong>
 
-                      <span>
-                        {item.inspections} inspections
-                      </span>
-
                     </div>
 
                   </div>
 
-
-                  {/* VOLUME */}
-
-                  <div className="category-volume">
-
-                    <div className="category-value-line">
-
-                      <span>
-                        Inspection Volume
-                      </span>
-
-                      <strong>
-                        {inspectionPercentage.toFixed(
-                          1
-                        )}%
-                      </strong>
-
-                    </div>
-
-                    <div className="category-mini-bar">
-
-                      <div
-                        className="category-volume-fill"
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            inspectionPercentage
-                          )}%`,
-                        }}
-                      />
-
-                    </div>
-
-                  </div>
-
-
-                  {/* DEFECTS */}
-
-                  <div className="category-defect-info">
-
-                    <span>
-                      DEFECTS
-                    </span>
-
-                    <strong>
-                      {item.defects}
-                    </strong>
-
-                  </div>
-
-
-                  {/* DEFECT RATE */}
-
-                  <div className="category-rate-info">
-
-                    <div>
-
-                      <span>
-                        DEFECT RATE
-                      </span>
-
-                      <strong>
-                        {item.defectRate.toFixed(
-                          1
-                        )}%
-                      </strong>
-
-                    </div>
-
-                    <div className="category-rate-bar">
-
-                      <div
-                        className="category-rate-fill"
-                        style={{
-                          width: `${defectPercentage}%`,
-                        }}
-                      />
-
-                    </div>
-
-                  </div>
-
-
-                  {/* SEVERITY */}
-
-                  <div className="category-severity-info">
-
-                    <span>
-                      AVG SEVERITY
-                    </span>
-
-                    <strong>
-                      {item.severity.toFixed(
-                        1
-                      )}
-                    </strong>
-
-                  </div>
-
-                </div>
-              );
-            })}
+                );
+              }
+            )}
 
           </div>
 
         )}
+
+      </section>
+
+
+      {/* ========================================================
+          TREND MONITORING
+          ======================================================== */}
+
+      <section className="analytics-panel trend-monitoring-panel">
+
+        <div className="analytics-panel-header">
+
+          <div>
+
+            <div className="section-eyebrow">
+              TREND MONITORING
+            </div>
+
+            <h2>
+              Production Quality Trends
+            </h2>
+
+            <p>
+              Monitor inspection activity and defect
+              patterns over time.
+            </p>
+
+          </div>
+
+          <div className="trend-live-status">
+
+            <span className="trend-live-dot"></span>
+
+            <span>
+              LIVE ANALYTICS
+            </span>
+
+          </div>
+
+        </div>
+
+
+        {/* ======================================================
+            TREND SUMMARY
+            ====================================================== */}
+
+        <div className="trend-summary-grid">
+
+          <div className="trend-summary-card">
+
+            <span>
+              TOTAL INSPECTIONS
+            </span>
+
+            <strong>
+              {trendTotal}
+            </strong>
+
+            <small>
+              All recorded inspections
+            </small>
+
+          </div>
+
+
+          <div className="trend-summary-card trend-normal-summary">
+
+            <span>
+              NORMAL
+            </span>
+
+            <strong>
+              {trendNormal}
+            </strong>
+
+            <small>
+              {trendNormalRate.toFixed(1)}% normal rate
+            </small>
+
+          </div>
+
+
+          <div className="trend-summary-card trend-defect-summary">
+
+            <span>
+              DEFECTIVE
+            </span>
+
+            <strong>
+              {trendDefects}
+            </strong>
+
+            <small>
+              {trendDefectRate.toFixed(1)}% defect rate
+            </small>
+
+          </div>
+
+        </div>
+
+
+        {/* ======================================================
+            DAILY TREND
+            ====================================================== */}
+
+        <div className="trend-section">
+
+          <div className="trend-section-heading">
+
+            <div>
+
+              <h3>
+                Daily Inspection Trend
+              </h3>
+
+              <p>
+                Inspection volume and quality results by date.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {dailyTrend.length === 0 ? (
+
+            <div className="trend-empty">
+
+              No daily trend data available.
+
+            </div>
+
+          ) : (
+
+            <div className="daily-trend-list">
+
+              {dailyTrend.map(
+                (item) => {
+
+                  const total =
+                    Number(
+                      item.total ?? 0
+                    );
+
+                  const normal =
+                    Number(
+                      item.normal ?? 0
+                    );
+
+                  const defect =
+                    Number(
+                      item.defect ?? 0
+                    );
+
+                  const totalWidth =
+                    (
+                      total /
+                      maxDailyTotal
+                    ) * 100;
+
+                  const normalWidth =
+                    total > 0
+                      ? (
+                          normal /
+                          total
+                        ) * 100
+                      : 0;
+
+                  const defectWidth =
+                    total > 0
+                      ? (
+                          defect /
+                          total
+                        ) * 100
+                      : 0;
+
+                  return (
+
+                    <div
+                      className="daily-trend-row"
+                      key={item.date}
+                    >
+
+                      <div className="daily-trend-date">
+
+                        <strong>
+                          {formatTrendDate(
+                            item.date
+                          )}
+                        </strong>
+
+                        <span>
+                          {total} inspections
+                        </span>
+
+                      </div>
+
+
+                      <div className="daily-trend-bar-area">
+
+                        <div className="daily-trend-bar">
+
+                          <div
+                            className="daily-normal-fill"
+                            style={{
+                              width: `${normalWidth}%`,
+                            }}
+                          ></div>
+
+                          <div
+                            className="daily-defect-fill"
+                            style={{
+                              width: `${defectWidth}%`,
+                            }}
+                          ></div>
+
+                        </div>
+
+                        <div className="daily-trend-labels">
+
+                          <span className="daily-normal-label">
+                            Normal {normal}
+                          </span>
+
+                          <span className="daily-defect-label">
+                            Defect {defect}
+                          </span>
+
+                        </div>
+
+                      </div>
+
+
+                      <div className="daily-trend-rate">
+
+                        <span>
+                          DEFECT RATE
+                        </span>
+
+                        <strong>
+                          {Number(
+                            item.defect_rate ?? 0
+                          ).toFixed(1)}%
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                  );
+
+                }
+              )}
+
+            </div>
+
+          )}
+
+        </div>
+
+
+        {/* ======================================================
+            CATEGORY TREND
+            ====================================================== */}
+
+        <div className="trend-section category-trend-section">
+
+          <div className="trend-section-heading">
+
+            <div>
+
+              <h3>
+                Category Defect Trend
+              </h3>
+
+              <p>
+                Compare defect frequency across product categories.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {categoryTrend.length === 0 ? (
+
+            <div className="trend-empty">
+
+              No category trend data available.
+
+            </div>
+
+          ) : (
+
+            <div className="category-trend-list">
+
+              {categoryTrend.map(
+                (item) => {
+
+                  const rate =
+                    Number(
+                      item.defect_rate ?? 0
+                    );
+
+                  const total =
+                    Number(
+                      item.total ?? 0
+                    );
+
+                  const defects =
+                    Number(
+                      item.defect ?? 0
+                    );
+
+                  const normal =
+                    Number(
+                      item.normal ?? 0
+                    );
+
+                  return (
+
+                    <div
+                      className="category-trend-row"
+                      key={item.category}
+                    >
+
+                      <div className="category-trend-name">
+
+                        <div className="category-trend-symbol">
+                          ◈
+                        </div>
+
+                        <div>
+
+                          <strong>
+                            {formatCategory(
+                              item.category
+                            )}
+                          </strong>
+
+                          <span>
+                            {total} inspections
+                          </span>
+
+                        </div>
+
+                      </div>
+
+
+                      <div className="category-trend-progress">
+
+                        <div className="category-trend-progress-track">
+
+                          <div
+                            className="category-trend-progress-fill"
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                Math.max(
+                                  0,
+                                  (
+                                    rate /
+                                    maxCategoryDefectRate
+                                  ) * 100
+                                )
+                              )}%`,
+                            }}
+                          ></div>
+
+                        </div>
+
+                      </div>
+
+
+                      <div className="category-trend-count">
+
+                        <span>
+                          NORMAL
+                        </span>
+
+                        <strong>
+                          {normal}
+                        </strong>
+
+                      </div>
+
+
+                      <div className="category-trend-count defect-count">
+
+                        <span>
+                          DEFECT
+                        </span>
+
+                        <strong>
+                          {defects}
+                        </strong>
+
+                      </div>
+
+
+                      <div className="category-trend-rate">
+
+                        <span>
+                          DEFECT RATE
+                        </span>
+
+                        <strong>
+                          {rate.toFixed(1)}%
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                  );
+
+                }
+              )}
+
+            </div>
+
+          )}
+
+        </div>
 
       </section>
 
@@ -1096,7 +1702,6 @@ export default function Analytics() {
 
 
         <div className="production-status-grid">
-
 
           {/* OVERALL */}
 
@@ -1141,9 +1746,8 @@ export default function Analytics() {
               </strong>
 
               <small>
-                {normalRate.toFixed(
-                  1
-                )}% of production
+                {normalRate.toFixed(1)}%
+                of production
               </small>
 
             </div>
@@ -1170,9 +1774,8 @@ export default function Analytics() {
               </strong>
 
               <small>
-                {defectRate.toFixed(
-                  1
-                )}% of production
+                {defectRate.toFixed(1)}%
+                of production
               </small>
 
             </div>
@@ -1216,7 +1819,6 @@ export default function Analytics() {
           ======================================================== */}
 
       <section className="analytics-insights">
-
 
         <div className="insight-item normal-insight">
 
@@ -1336,13 +1938,58 @@ export default function Analytics() {
    ================================================================ */
 
 function formatCategory(category) {
+
   if (!category) {
     return "Unknown";
   }
 
   return String(category)
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) =>
-      letter.toUpperCase()
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase()
     );
+}
+
+
+/* ================================================================
+   TREND DATE FORMATTER
+   ================================================================ */
+
+function formatTrendDate(value) {
+
+  if (!value) {
+    return "Unknown Date";
+  }
+
+  try {
+
+    const date =
+      new Date(
+        `${value}T00:00:00`
+      );
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return value;
+    }
+
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
+
+  } catch {
+
+    return value;
+
+  }
 }
