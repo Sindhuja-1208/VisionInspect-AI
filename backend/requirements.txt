@@ -1,3 +1,4 @@
+
 fastapi
 uvicorn[standard]
 python-multipart
@@ -9,6 +10,6 @@ email-validator
 opencv-python-headless
 numpy
 pillow
-torch
-torchvision
 scikit-learn
+torch==2.6.0
+torchvision==0.21.0

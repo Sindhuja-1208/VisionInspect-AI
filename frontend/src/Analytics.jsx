@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from "react";
 import "./Analytics.css";
+import { API_BASE_URL } from "./services/api";
 
-const API_BASE_URL = "http://localhost:8000";
 
 export default function Analytics() {
   const [data, setData] = useState(null);

@@ -1,0 +1,19 @@
+@'
+.git
+**/venv
+**/venv312
+**/.venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+backend/.env
+backend/visioninspect.db
+backend/uploads
+uploads
+dataset
+frontend/dist
+frontend/build
+*.log
+'@ | Set-Content -Path .dockerignore -Encoding ascii
+
+Test-Path .dockerignore

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import UploadInspection from "./UploadInspection";
 import "./Dashboard.css";
-
+import { API_BASE_URL } from "./services/api";
 function Dashboard() {
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,6 @@ function Dashboard() {
   // BACKEND URL
   // ============================================================
 
-  const API_BASE_URL = "http://127.0.0.1:8000";
 
   // ============================================================
   // FETCH INSPECTIONS
