@@ -1,9 +1,10 @@
-
+﻿
 import { useState } from "react";
 import "./App.css";
 import { loginUser, registerUser } from "./services/api";
 import Dashboard from "./Dashboard";
 import Analytics from "./Analytics";
+import SupervisorDashboard from "./SupervisorDashboard";
 
 function App() {
   const [name, setName] = useState("");
@@ -167,16 +168,18 @@ function App() {
               </button>
             )}
 
-            <button
-              className={
-                currentPage === "analytics"
-                  ? "nav-button active"
-                  : "nav-button"
-              }
-              onClick={() => setCurrentPage("analytics")}
-            >
-              Analytics
-            </button>
+            {!isSupervisor && (
+              <button
+                className={
+                  currentPage === "analytics"
+                    ? "nav-button active"
+                    : "nav-button"
+                }
+                onClick={() => setCurrentPage("analytics")}
+              >
+                Analytics
+              </button>
+            )}
           </div>
 
           <div className="app-nav-user">
@@ -191,7 +194,7 @@ function App() {
 
         <main className="app-page-content">
           {isSupervisor && currentPage === "production" && (
-            <Analytics />
+            <SupervisorDashboard />
           )}
 
           {!isSupervisor && currentPage === "dashboard" && (
@@ -322,15 +325,5 @@ function App() {
 }
 
 export default App;
-{!isSupervisor && (
-  <button
-    className={
-      currentPage === "analytics"
-        ? "nav-button active"
-        : "nav-button"
-    }
-    onClick={() => setCurrentPage("analytics")}
-  >
-    Analytics
-  </button>
-)}
+
+
