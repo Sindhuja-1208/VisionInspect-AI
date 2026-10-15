@@ -1,9 +1,7 @@
 
 import { useState } from "react";
 import "./App.css";
-
 import { loginUser, registerUser } from "./services/api";
-
 import Dashboard from "./Dashboard";
 import Analytics from "./Analytics";
 
@@ -12,7 +10,6 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("");
-
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +19,19 @@ function App() {
     !!localStorage.getItem("access_token")
   );
 
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const getSavedUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  };
+
+  const [currentPage, setCurrentPage] = useState(() =>
+    getSavedUser()?.role === "Factory Supervisor"
+      ? "production"
+      : "dashboard"
+  );
 
   // LOGIN
   const handleLogin = async (event) => {
@@ -37,7 +46,6 @@ function App() {
 
     try {
       setLoading(true);
-
       const data = await loginUser(email.trim(), password);
 
       if (data.user.role !== role) {
@@ -48,10 +56,14 @@ function App() {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      setCurrentPage(
+        data.user.role === "Factory Supervisor"
+          ? "production"
+          : "dashboard"
+      );
       setIsLoggedIn(true);
-      setCurrentPage("dashboard");
     } catch (err) {
-      setError(err.message || "Login failed. Please try again.");
+      setError(err.message || "Login failed.");
     } finally {
       setLoading(false);
     }
@@ -75,7 +87,6 @@ function App() {
 
     try {
       setLoading(true);
-
       await registerUser(name.trim(), email.trim(), password, role);
 
       setIsRegistering(false);
@@ -84,7 +95,7 @@ function App() {
       setRole("");
       setSuccess("Registration successful! Please log in.");
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
+      setError(err.message || "Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -97,6 +108,7 @@ function App() {
 
     setIsLoggedIn(false);
     setCurrentPage("dashboard");
+    setName("");
     setEmail("");
     setPassword("");
     setRole("");
@@ -105,9 +117,17 @@ function App() {
     setIsRegistering(false);
   };
 
-  // LOGGED-IN APPLICATION
+  // APPLICATION
   if (isLoggedIn) {
-    const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const user = getSavedUser();
+    const isSupervisor = user?.role === "Factory Supervisor";
+
+    // Handle an invalid or missing saved user safely.
+    if (!user) {
+      localStorage.removeItem("access_token");
+      setIsLoggedIn(false);
+      return null;
+    }
 
     return (
       <div className="app-container">
@@ -121,16 +141,31 @@ function App() {
           </div>
 
           <div className="app-nav-links">
-            <button
-              className={
-                currentPage === "dashboard"
-                  ? "nav-button active"
-                  : "nav-button"
-              }
-              onClick={() => setCurrentPage("dashboard")}
-            >
-              Dashboard
-            </button>
+            {!isSupervisor && (
+              <button
+                className={
+                  currentPage === "dashboard"
+                    ? "nav-button active"
+                    : "nav-button"
+                }
+                onClick={() => setCurrentPage("dashboard")}
+              >
+                Inspection Dashboard
+              </button>
+            )}
+
+            {isSupervisor && (
+              <button
+                className={
+                  currentPage === "production"
+                    ? "nav-button active"
+                    : "nav-button"
+                }
+                onClick={() => setCurrentPage("production")}
+              >
+                Production Overview
+              </button>
+            )}
 
             <button
               className={
@@ -145,8 +180,8 @@ function App() {
           </div>
 
           <div className="app-nav-user">
-            <span>{savedUser.name || "User"}</span>
-            <small>{savedUser.role || ""}</small>
+            <strong>{user.name}</strong>
+            <small>{user.role}</small>
           </div>
 
           <button className="app-logout-button" onClick={handleLogout}>
@@ -155,14 +190,21 @@ function App() {
         </nav>
 
         <main className="app-page-content">
-          {currentPage === "dashboard" && <Dashboard />}
+          {isSupervisor && currentPage === "production" && (
+            <Analytics />
+          )}
+
+          {!isSupervisor && currentPage === "dashboard" && (
+            <Dashboard />
+          )}
+
           {currentPage === "analytics" && <Analytics />}
         </main>
       </div>
     );
   }
 
-  // LOGIN / REGISTER PAGE
+  // LOGIN AND REGISTRATION
   return (
     <div className="login-page">
       <div className="login-card">
@@ -181,11 +223,10 @@ function App() {
           <p className="login-subtitle">
             {isRegistering
               ? "Register to access VisionInspect AI"
-              : "Sign in to access the inspection dashboard"}
+              : "Sign in to access your dashboard"}
           </p>
 
           {error && <div className="error-message">{error}</div>}
-
           {success && <div className="success-message">{success}</div>}
 
           {isRegistering && (
@@ -196,8 +237,7 @@ function App() {
                 type="text"
                 placeholder="Enter your full name"
                 value={name}
-                onChange={(event) => setName(event.target.value)}
-                autoComplete="name"
+                onChange={(e) => setName(e.target.value)}
                 required
               />
             </>
@@ -209,8 +249,7 @@ function App() {
             type="email"
             placeholder="Enter your email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
 
@@ -220,8 +259,7 @@ function App() {
             type="password"
             placeholder={isRegistering ? "At least 8 characters" : "Enter your password"}
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete={isRegistering ? "new-password" : "current-password"}
+            onChange={(e) => setPassword(e.target.value)}
             minLength={isRegistering ? 8 : undefined}
             required
           />
@@ -230,7 +268,7 @@ function App() {
           <select
             id="role"
             value={role}
-            onChange={(event) => setRole(event.target.value)}
+            onChange={(e) => setRole(e.target.value)}
             required
           >
             <option value="">Select your role</option>
@@ -254,29 +292,24 @@ function App() {
             {isRegistering
               ? "Already have an account? "
               : "Don't have an account? "}
-
             <span
               role="button"
               tabIndex={0}
+              style={{ cursor: "pointer", fontWeight: "bold" }}
               onClick={() => {
                 if (loading) return;
                 setIsRegistering(!isRegistering);
                 setError("");
                 setSuccess("");
               }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
                   if (loading) return;
                   setIsRegistering(!isRegistering);
                   setError("");
                   setSuccess("");
                 }
-              }}
-              style={{
-                cursor: "pointer",
-                fontWeight: "bold",
-                color: "#2563eb"
               }}
             >
               {isRegistering ? "Login" : "Register"}
@@ -289,3 +322,15 @@ function App() {
 }
 
 export default App;
+{!isSupervisor && (
+  <button
+    className={
+      currentPage === "analytics"
+        ? "nav-button active"
+        : "nav-button"
+    }
+    onClick={() => setCurrentPage("analytics")}
+  >
+    Analytics
+  </button>
+)}
