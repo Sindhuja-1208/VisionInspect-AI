@@ -1,209 +1,136 @@
+
 import { useState } from "react";
 import "./App.css";
 
-import { loginUser } from "./services/api";
+import { loginUser, registerUser } from "./services/api";
 
 import Dashboard from "./Dashboard";
 import Analytics from "./Analytics";
 
-
 function App() {
-
-  // ============================================================
-  // LOGIN STATE
-  // ============================================================
-
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("");
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    !!localStorage.getItem("access_token")
+  );
 
-  // ============================================================
-  // LOGIN STATUS
-  // ============================================================
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
-  const [isLoggedIn, setIsLoggedIn] =
-    useState(
-      !!localStorage.getItem(
-        "access_token"
-      )
-    );
-
-
-  // ============================================================
-  // CURRENT PAGE
-  // ============================================================
-
-  const [currentPage, setCurrentPage] =
-    useState("dashboard");
-
-
-  // ============================================================
   // LOGIN
-  // ============================================================
-
   const handleLogin = async (event) => {
-
     event.preventDefault();
-
     setError("");
+    setSuccess("");
 
-
-    if (
-      !email ||
-      !password ||
-      !role
-    ) {
-
-      setError(
-        "Please fill all fields."
-      );
-
+    if (!email.trim() || !password || !role) {
+      setError("Please fill all fields.");
       return;
     }
 
-
     try {
-
       setLoading(true);
 
+      const data = await loginUser(email.trim(), password);
 
-      const data =
-        await loginUser(
-          email,
-          password
-        );
-
-
-      if (
-        data.user.role !== role
-      ) {
-
-        setError(
-          "Selected role does not match your account."
-        );
-
+      if (data.user.role !== role) {
+        setError("Selected role does not match your account.");
         return;
       }
 
-
-      localStorage.setItem(
-        "access_token",
-        data.access_token
-      );
-
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(
-          data.user
-        )
-      );
-
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       setIsLoggedIn(true);
-
-      setCurrentPage(
-        "dashboard"
-      );
-
-
+      setCurrentPage("dashboard");
     } catch (err) {
-
-      setError(
-        err.message
-      );
-
+      setError(err.message || "Login failed. Please try again.");
     } finally {
-
       setLoading(false);
+    }
+  };
 
+  // REGISTER
+  const handleRegister = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!name.trim() || !email.trim() || !password || !role) {
+      setError("Please fill all fields.");
+      return;
     }
 
+    if (password.length < 8) {
+      setError("Password must contain at least 8 characters.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await registerUser(name.trim(), email.trim(), password, role);
+
+      setIsRegistering(false);
+      setName("");
+      setPassword("");
+      setRole("");
+      setSuccess("Registration successful! Please log in.");
+    } catch (err) {
+      setError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-
-  // ============================================================
   // LOGOUT
-  // ============================================================
-
   const handleLogout = () => {
-
-    localStorage.clear();
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
 
     setIsLoggedIn(false);
-
-    setCurrentPage(
-      "dashboard"
-    );
-
+    setCurrentPage("dashboard");
+    setEmail("");
+    setPassword("");
+    setRole("");
+    setError("");
+    setSuccess("");
+    setIsRegistering(false);
   };
 
-
-  // ============================================================
-  // IF LOGGED IN
-  // ============================================================
-
+  // LOGGED-IN APPLICATION
   if (isLoggedIn) {
+    const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
 
     return (
-
       <div className="app-container">
-
-
-        {/* ==================================================
-            NAVIGATION
-            ================================================== */}
-
         <nav className="app-navigation">
-
-
-          {/* BRAND */}
-
           <div className="app-nav-brand">
-
-            <div className="app-nav-logo">
-              VI
-            </div>
-
+            <div className="app-nav-logo">VI</div>
             <div>
-
-              <strong>
-                VisionInspect
-              </strong>
-
-              <span>
-                AI
-              </span>
-
+              <strong>VisionInspect</strong>
+              <span> AI</span>
             </div>
-
           </div>
 
-
-          {/* NAVIGATION BUTTONS */}
-
           <div className="app-nav-links">
-
-
             <button
               className={
                 currentPage === "dashboard"
                   ? "nav-button active"
                   : "nav-button"
               }
-              onClick={() =>
-                setCurrentPage(
-                  "dashboard"
-                )
-              }
+              onClick={() => setCurrentPage("dashboard")}
             >
               Dashboard
             </button>
-
 
             <button
               className={
@@ -211,233 +138,154 @@ function App() {
                   ? "nav-button active"
                   : "nav-button"
               }
-              onClick={() =>
-                setCurrentPage(
-                  "analytics"
-                )
-              }
+              onClick={() => setCurrentPage("analytics")}
             >
               Analytics
             </button>
-
-
           </div>
 
+          <div className="app-nav-user">
+            <span>{savedUser.name || "User"}</span>
+            <small>{savedUser.role || ""}</small>
+          </div>
 
-          {/* LOGOUT */}
-
-          <button
-            className="app-logout-button"
-            onClick={
-              handleLogout
-            }
-          >
+          <button className="app-logout-button" onClick={handleLogout}>
             Logout
           </button>
-
-
         </nav>
 
-
-        {/* ==================================================
-            PAGE CONTENT
-            ================================================== */}
-
         <main className="app-page-content">
-
-          {currentPage ===
-            "dashboard" && (
-
-            <Dashboard />
-
-          )}
-
-
-          {currentPage ===
-            "analytics" && (
-
-            <Analytics />
-
-          )}
-
+          {currentPage === "dashboard" && <Dashboard />}
+          {currentPage === "analytics" && <Analytics />}
         </main>
-
-
       </div>
-
     );
-
   }
 
-
-  // ============================================================
-  // LOGIN PAGE
-  // ============================================================
-
+  // LOGIN / REGISTER PAGE
   return (
-
     <div className="login-page">
-
       <div className="login-card">
-
-
-        {/* ==================================================
-            LOGO
-            ================================================== */}
-
         <div className="logo-section">
-
-          <div className="logo-icon">
-            VI
-          </div>
-
-          <h1>
-            VisionInspect AI
-          </h1>
-
-          <p>
-            Manufacturing Quality Inspection System
-          </p>
-
+          <div className="logo-icon">VI</div>
+          <h1>VisionInspect AI</h1>
+          <p>Manufacturing Quality Inspection System</p>
         </div>
-
-
-        {/* ==================================================
-            LOGIN FORM
-            ================================================== */}
 
         <form
           className="login-form"
-          onSubmit={
-            handleLogin
-          }
+          onSubmit={isRegistering ? handleRegister : handleLogin}
         >
-
-          <h2>
-            Welcome Back
-          </h2>
+          <h2>{isRegistering ? "Create Your Account" : "Welcome Back"}</h2>
 
           <p className="login-subtitle">
-            Sign in to access the
-            inspection dashboard
+            {isRegistering
+              ? "Register to access VisionInspect AI"
+              : "Sign in to access the inspection dashboard"}
           </p>
 
+          {error && <div className="error-message">{error}</div>}
 
-          {/* ERROR */}
+          {success && <div className="success-message">{success}</div>}
 
-          {error && (
-
-            <div className="error-message">
-
-              {error}
-
-            </div>
-
+          {isRegistering && (
+            <>
+              <label htmlFor="register-name">Full Name</label>
+              <input
+                id="register-name"
+                type="text"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete="name"
+                required
+              />
+            </>
           )}
 
-
-          {/* EMAIL */}
-
-          <label>
-            Email Address
-          </label>
-
+          <label htmlFor="email">Email Address</label>
           <input
+            id="email"
             type="email"
             placeholder="Enter your email"
             value={email}
-            onChange={(event) =>
-              setEmail(
-                event.target.value
-              )
-            }
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
           />
 
-
-          {/* PASSWORD */}
-
-          <label>
-            Password
-          </label>
-
+          <label htmlFor="password">Password</label>
           <input
+            id="password"
             type="password"
-            placeholder="Enter your password"
+            placeholder={isRegistering ? "At least 8 characters" : "Enter your password"}
             value={password}
-            onChange={(event) =>
-              setPassword(
-                event.target.value
-              )
-            }
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete={isRegistering ? "new-password" : "current-password"}
+            minLength={isRegistering ? 8 : undefined}
+            required
           />
 
-
-          {/* ROLE */}
-
-          <label>
-            Role
-          </label>
-
+          <label htmlFor="role">Role</label>
           <select
+            id="role"
             value={role}
-            onChange={(event) =>
-              setRole(
-                event.target.value
-              )
-            }
+            onChange={(event) => setRole(event.target.value)}
+            required
           >
-
-            <option value="">
-              Select your role
-            </option>
-
-            <option value="Quality Engineer">
-              Quality Engineer
-            </option>
-
-            <option value="Factory Supervisor">
-              Factory Supervisor
-            </option>
-
+            <option value="">Select your role</option>
+            <option value="Quality Engineer">Quality Engineer</option>
+            <option value="Factory Supervisor">Factory Supervisor</option>
           </select>
-
-
-          {/* LOGIN BUTTON */}
 
           <button
             type="submit"
             className="login-button"
             disabled={loading}
           >
-
             {loading
-              ? "Signing in..."
-              : "Login"}
-
+              ? "Please wait..."
+              : isRegistering
+                ? "Create Account"
+                : "Login"}
           </button>
 
-
           <p className="register-text">
+            {isRegistering
+              ? "Already have an account? "
+              : "Don't have an account? "}
 
-            Don't have an account?{" "}
-
-            <span>
-              Register
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (loading) return;
+                setIsRegistering(!isRegistering);
+                setError("");
+                setSuccess("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  if (loading) return;
+                  setIsRegistering(!isRegistering);
+                  setError("");
+                  setSuccess("");
+                }
+              }}
+              style={{
+                cursor: "pointer",
+                fontWeight: "bold",
+                color: "#2563eb"
+              }}
+            >
+              {isRegistering ? "Login" : "Register"}
             </span>
-
           </p>
-
-
         </form>
-
-
       </div>
-
     </div>
-
   );
-
 }
-
 
 export default App;
