@@ -353,11 +353,15 @@ def get_reports(
             current_user
         )
 
+        report_filter = (
+            {}
+            if current_user.get("role") == "Factory Supervisor"
+            else {"user_id": user_id}
+        )
+
         inspections = list(
             inspections_collection.find(
-                {
-                    "user_id": user_id
-                }
+                report_filter
             ).sort(
                 "created_at",
                 -1
@@ -434,18 +438,17 @@ def get_single_report(
             current_user
         )
 
-        inspection = (
-            inspections_collection.find_one(
-                {
-                    "_id":
-                        ObjectId(
-                            inspection_id
-                        ),
+        report_filter = {
+            "_id": ObjectId(inspection_id)
+        }
 
-                    "user_id":
-                        user_id
-                }
-            )
+        # Supervisors can review factory reports;
+        # engineers can access only their own reports.
+        if current_user.get("role") != "Factory Supervisor":
+            report_filter["user_id"] = user_id
+
+        inspection = inspections_collection.find_one(
+            report_filter
         )
 
         if not inspection:

@@ -217,12 +217,15 @@ def get_inspections(
             current_user["id"]
         )
 
+        inspection_filter = (
+            {}
+            if current_user.get("role") == "Factory Supervisor"
+            else {"user_id": user_id}
+        )
+
         inspections = list(
             collection.find(
-                {
-                    "user_id":
-                        user_id
-                }
+                inspection_filter
             )
             .sort(
                 "created_at",

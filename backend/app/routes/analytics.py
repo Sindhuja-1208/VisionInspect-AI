@@ -140,11 +140,17 @@ def get_analytics_summary(
         # GET USER INSPECTIONS
         # ----------------------------------------------------
 
+        # Factory Supervisor: factory-wide monitoring.
+        # Quality Engineer: own inspection records only.
+        inspection_filter = (
+            {}
+            if current_user.get("role") == "Factory Supervisor"
+            else {"user_id": user_id}
+        )
+
         inspections = list(
             inspections_collection.find(
-                {
-                    "user_id": user_id
-                }
+                inspection_filter
             ).sort(
                 "created_at",
                 -1
@@ -601,11 +607,17 @@ def get_analytics_trends(
         # GET USER INSPECTIONS
         # ----------------------------------------------------
 
+        # Factory Supervisor: factory-wide trends.
+        # Quality Engineer: own inspection trends only.
+        inspection_filter = (
+            {}
+            if current_user.get("role") == "Factory Supervisor"
+            else {"user_id": user_id}
+        )
+
         inspections = list(
             inspections_collection.find(
-                {
-                    "user_id": user_id
-                }
+                inspection_filter
             ).sort(
                 "created_at",
                 1
