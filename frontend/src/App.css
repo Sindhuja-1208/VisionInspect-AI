@@ -523,3 +523,113 @@ body {
   }
 
 }
+/* Shared single header refinements */
+.app-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 82px;
+  height: auto;
+  padding: 14px 28px;
+  flex-wrap: nowrap;
+}
+
+.app-nav-brand {
+  flex: 0 1 340px;
+  min-width: 0;
+  gap: 12px;
+}
+
+.app-nav-logo {
+  flex-shrink: 0;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.app-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.app-nav-brand .app-brand-text strong {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.2;
+  color: #172033;
+}
+
+.app-nav-brand .app-brand-text span {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: #667085;
+  white-space: normal;
+}
+
+.app-nav-links {
+  flex: 1 1 auto;
+  justify-content: center;
+  gap: 8px;
+}
+
+.app-nav-user {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.app-nav-user strong {
+  font-size: 13px;
+  color: #172033;
+}
+
+.app-nav-user small {
+  font-size: 11px;
+  color: #667085;
+}
+
+.app-logout-button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .app-navigation {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 18px;
+  }
+
+  .app-nav-brand {
+    flex: 1 1 55%;
+  }
+
+  .app-nav-links {
+    order: 5;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  .app-nav-user {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-nav-brand .app-brand-text strong {
+    font-size: 16px;
+  }
+
+  .app-nav-brand .app-brand-text span {
+    font-size: 10px;
+  }
+
+  .app-nav-user strong {
+    font-size: 12px;
+  }
+}

@@ -132,54 +132,35 @@ function App() {
 
     return (
       <div className="app-container">
-        <nav className="app-navigation">
+        <header className="app-navigation">
           <div className="app-nav-brand">
-            <div className="app-nav-logo">VI</div>
-            <div>
-              <strong>VisionInspect</strong>
-              <span> AI</span>
+            <div className="app-nav-logo">✦</div>
+            <div className="app-brand-text">
+              <strong>VisionInspect AI</strong>
+              <span>Intelligent Manufacturing Quality Inspection</span>
             </div>
           </div>
 
           <div className="app-nav-links">
-            {!isSupervisor && (
-              <button
-                className={
-                  currentPage === "dashboard"
-                    ? "nav-button active"
-                    : "nav-button"
-                }
-                onClick={() => setCurrentPage("dashboard")}
-              >
-                Inspection Dashboard
-              </button>
-            )}
+            <button
+              className={
+                currentPage === (isSupervisor ? "production" : "dashboard")
+                  ? "nav-button active"
+                  : "nav-button"
+              }
+              onClick={() => setCurrentPage(isSupervisor ? "production" : "dashboard")}
+            >
+              {isSupervisor ? "Production Overview" : "Dashboard"}
+            </button>
 
-            {isSupervisor && (
-              <button
-                className={
-                  currentPage === "production"
-                    ? "nav-button active"
-                    : "nav-button"
-                }
-                onClick={() => setCurrentPage("production")}
-              >
-                Production Overview
-              </button>
-            )}
-
-            {!isSupervisor && (
-              <button
-                className={
-                  currentPage === "analytics"
-                    ? "nav-button active"
-                    : "nav-button"
-                }
-                onClick={() => setCurrentPage("analytics")}
-              >
-                Analytics
-              </button>
-            )}
+            <button
+              className={
+                currentPage === "analytics" ? "nav-button active" : "nav-button"
+              }
+              onClick={() => setCurrentPage("analytics")}
+            >
+              Analytics
+            </button>
           </div>
 
           <div className="app-nav-user">
@@ -190,8 +171,7 @@ function App() {
           <button className="app-logout-button" onClick={handleLogout}>
             Logout
           </button>
-        </nav>
-
+        </header>
         <main className="app-page-content">
           {isSupervisor && currentPage === "production" && (
             <SupervisorDashboard />
@@ -325,5 +305,6 @@ function App() {
 }
 
 export default App;
+
 
 
