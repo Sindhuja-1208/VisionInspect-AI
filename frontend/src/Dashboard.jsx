@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import UploadInspection from "./UploadInspection";
 import "./Dashboard.css";
 import { API_BASE_URL } from "./services/api";
@@ -236,7 +236,7 @@ function Dashboard() {
             <div className="stat-card-top">
 
               <div className="stat-icon total-icon">
-                â—ˆ
+                ◈
               </div>
 
               <span className="stat-badge total-badge">
@@ -267,7 +267,7 @@ function Dashboard() {
             <div className="stat-card-top">
 
               <div className="stat-icon normal-icon">
-                âœ“
+                ✓
               </div>
 
               <span className="stat-badge normal-badge">
@@ -329,7 +329,7 @@ function Dashboard() {
             <div className="stat-card-top">
 
               <div className="stat-icon ai-icon">
-                âœ¦
+                ✦
               </div>
 
               <span className="stat-badge ai-badge">
@@ -518,7 +518,7 @@ function Dashboard() {
               <div className="empty-state">
 
                 <div className="empty-icon">
-                  â—‡
+                  ◇
                 </div>
 
                 <h3>
@@ -913,7 +913,7 @@ function Dashboard() {
                           {isNormal && (
 
                             <div className="image-normal-badge">
-                              âœ“ NORMAL
+                              ✓ NORMAL
                             </div>
 
                           )}
@@ -963,7 +963,7 @@ function Dashboard() {
                           {isNormal && (
 
                             <span className="result-normal">
-                              âœ“ NORMAL
+                              ✓ NORMAL
                             </span>
 
                           )}
@@ -1006,7 +1006,7 @@ function Dashboard() {
 
                               {score !== null
                                 ? score.toFixed(6)
-                                : "â€”"}
+                                : "—"}
 
                             </strong>
 
@@ -1034,7 +1034,7 @@ function Dashboard() {
 
                             <strong className="completed-status">
 
-                              â—{" "}
+                              ●{" "}
                               {inspection.status ||
                                 "completed"}
 
@@ -1091,7 +1091,7 @@ function Dashboard() {
                                 ? Number(
                                     threshold
                                   ).toFixed(6)
-                                : "â€”"}
+                                : "—"}
 
                             </strong>
 
@@ -1148,7 +1148,7 @@ function Dashboard() {
 
                                 {severityScore !== null
                                   ? severityScore.toFixed(2)
-                                  : "â€”"}
+                                  : "—"}
 
                               </strong>
 
@@ -1376,7 +1376,7 @@ function Dashboard() {
                               <div className="explanation-title">
 
                                 <span className="explanation-icon">
-                                  âœ“
+                                  ✓
                                 </span>
 
                                 Quality Check
@@ -1440,7 +1440,7 @@ function Dashboard() {
                             </span>
 
                             <strong>
-                              224 Ã— 224
+                              224 × 224
                             </strong>
 
                           </div>
@@ -1459,7 +1459,7 @@ function Dashboard() {
                               inspection.processing_time_seconds !==
                                 null
                                 ? `${inspection.processing_time_seconds}s`
-                                : "â€”"}
+                                : "—"}
 
                             </strong>
 
