@@ -142,7 +142,16 @@ class ResNet18FeatureExtractor:
 # GLOBAL FEATURE EXTRACTOR
 # ============================================================
 
-FEATURE_EXTRACTOR = ResNet18FeatureExtractor()
+FEATURE_EXTRACTOR = None
+
+
+def get_feature_extractor():
+    global FEATURE_EXTRACTOR
+
+    if FEATURE_EXTRACTOR is None:
+        FEATURE_EXTRACTOR = ResNet18FeatureExtractor()
+
+    return FEATURE_EXTRACTOR
 
 
 # ============================================================
@@ -230,24 +239,18 @@ def preprocess_image(
 # EXTRACT IMAGE FEATURES
 # ============================================================
 
-def extract_image_features(
-    image_path: str
-):
+def extract_image_features(image_path: str):
+    image_tensor = preprocess_image(image_path)
 
-    image_tensor = preprocess_image(
-        image_path
-    )
+    feature_extractor = get_feature_extractor()
 
     with torch.no_grad():
-
-        feature_map = (
-            FEATURE_EXTRACTOR.extract_features(
-                image_tensor
-            )
-        )
+        feature_map = feature_extractor.extract_features(image_tensor)
 
     return feature_map
 
+
+     
 
 # ============================================================
 # FEATURE MAP -> PATCHES
