@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import UploadInspection from "./UploadInspection";
 import "./Dashboard.css";
 import { API_BASE_URL } from "./services/api";
@@ -700,7 +700,7 @@ function Dashboard() {
                           {isNormal && (
 
                             <div className="image-normal-badge">
-                              {"\u2713"}
+                              {"\u2713"} NORMAL
                             </div>
 
                           )}
@@ -749,8 +749,8 @@ function Dashboard() {
 
                           {isNormal && (
 
-                            <span className="result-normal">
-                              {"\u2713"}
+                           <span className="result-normal">
+                              {"\u2713"} NORMAL
                             </span>
 
                           )}
