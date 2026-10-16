@@ -11,6 +11,9 @@ from pathlib import Path
 import shutil
 import uuid
 import time
+import os
+import cloudinary
+import cloudinary.uploader
 
 from app.database import get_database
 from app.models.user import User
@@ -612,6 +615,47 @@ async def upload_inspection(
     )
 
     # ========================================================
+    # CLOUDINARY IMAGE STORAGE
+    # ========================================================
+
+    image_url = None
+
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    cloud_key = os.getenv("CLOUDINARY_API_KEY")
+    cloud_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+    if cloud_name and cloud_key and cloud_secret:
+        try:
+            cloudinary.config(
+                cloud_name=cloud_name,
+                api_key=cloud_key,
+                api_secret=cloud_secret,
+                secure=True
+            )
+
+            cloud_result = cloudinary.uploader.upload(
+                str(file_path),
+                folder="visioninspect/inspections",
+                public_id=Path(unique_filename).stem,
+                overwrite=True,
+                resource_type="image"
+            )
+
+            image_url = cloud_result.get("secure_url")
+
+            if not image_url:
+                raise ValueError("Cloudinary did not return a secure URL")
+
+        except Exception as error:
+            print(f"Cloudinary upload failed: {error}")
+            raise HTTPException(
+                status_code=502,
+                detail="Image cloud storage failed. Check backend environment variables and deployment logs."
+            )
+    else:
+        print("Cloudinary credentials are not configured.")
+
+    # ========================================================
     # DATABASE DOCUMENT
     # ========================================================
 
@@ -622,6 +666,9 @@ async def upload_inspection(
 
         "filename":
             unique_filename,
+
+        "image_url":
+            image_url,
 
         "category":
             category,
@@ -800,6 +847,9 @@ async def upload_inspection(
 
         "filename":
             unique_filename,
+
+        "image_url":
+            image_url,
 
         "category":
             category,
