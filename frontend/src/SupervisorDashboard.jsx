@@ -272,8 +272,7 @@ export default function SupervisorDashboard() {
       </section>
 
       <p className="supervisor-footnote">
-        Figures reflect inspections available to the signed-in account; they are not
-        a consolidated view of every factory user.
+        Figures reflect factory-wide inspection records available to supervisors.
       </p>
     </div>
   );
