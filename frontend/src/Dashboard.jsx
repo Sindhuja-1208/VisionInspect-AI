@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import UploadInspection from "./UploadInspection";
 import "./Dashboard.css";
 import { API_BASE_URL } from "./services/api";
@@ -223,137 +223,6 @@ function Dashboard() {
         </section>
 
 
-        {/* ====================================================
-            DASHBOARD SUMMARY STATISTICS
-            ==================================================== */}
-
-        <section className="stats-grid">
-
-          {/* TOTAL */}
-
-          <div className="stat-card total-card">
-
-            <div className="stat-card-top">
-
-              <div className="stat-icon total-icon">
-                â—ˆ
-              </div>
-
-              <span className="stat-badge total-badge">
-                ALL
-              </span>
-
-            </div>
-
-            <div className="stat-card-label">
-              Total Inspections
-            </div>
-
-            <div className="stat-number">
-              {totalInspections}
-            </div>
-
-            <div className="stat-description">
-              Products inspected
-            </div>
-
-          </div>
-
-
-          {/* NORMAL */}
-
-          <div className="stat-card normal-card">
-
-            <div className="stat-card-top">
-
-              <div className="stat-icon normal-icon">
-                âœ“
-              </div>
-
-              <span className="stat-badge normal-badge">
-                PASS
-              </span>
-
-            </div>
-
-            <div className="stat-card-label">
-              Normal Products
-            </div>
-
-            <div className="stat-number">
-              {normalInspections}
-            </div>
-
-            <div className="stat-description">
-              Quality check passed
-            </div>
-
-          </div>
-
-
-          {/* DEFECT */}
-
-          <div className="stat-card defect-card">
-
-            <div className="stat-card-top">
-
-              <div className="stat-icon defect-icon">
-                !
-              </div>
-
-              <span className="stat-badge defect-badge">
-                ALERT
-              </span>
-
-            </div>
-
-            <div className="stat-card-label">
-              Defects Detected
-            </div>
-
-            <div className="stat-number">
-              {defectiveInspections}
-            </div>
-
-            <div className="stat-description">
-              Requires attention
-            </div>
-
-          </div>
-
-
-          {/* AI */}
-
-          <div className="stat-card ai-card">
-
-            <div className="stat-card-top">
-
-              <div className="stat-icon ai-icon">
-                âœ¦
-              </div>
-
-              <span className="stat-badge ai-badge">
-                AI
-              </span>
-
-            </div>
-
-            <div className="stat-card-label">
-              AI Inspections
-            </div>
-
-            <div className="stat-number">
-              {aiInspections}
-            </div>
-
-            <div className="stat-description">
-              PatchCore powered
-            </div>
-
-          </div>
-
-        </section>
-
 
         {/* ====================================================
             UPLOAD INSPECTION
@@ -434,7 +303,7 @@ function Dashboard() {
               <div className="empty-state">
 
                 <div className="empty-icon">
-                  â—‡
+                  {"\u2713"}
                 </div>
 
                 <h3>
@@ -831,7 +700,7 @@ function Dashboard() {
                           {isNormal && (
 
                             <div className="image-normal-badge">
-                              âœ“ NORMAL
+                              {"\u2713"}
                             </div>
 
                           )}
@@ -881,7 +750,7 @@ function Dashboard() {
                           {isNormal && (
 
                             <span className="result-normal">
-                              âœ“ NORMAL
+                              {"\u2713"}
                             </span>
 
                           )}
@@ -924,7 +793,7 @@ function Dashboard() {
 
                               {score !== null
                                 ? score.toFixed(6)
-                                : "â€”"}
+                                : "\u2014"}
 
                             </strong>
 
@@ -952,7 +821,7 @@ function Dashboard() {
 
                             <strong className="completed-status">
 
-                              â—{" "}
+                              {"\u2713"}
                               {inspection.status ||
                                 "completed"}
 
@@ -1009,7 +878,7 @@ function Dashboard() {
                                 ? Number(
                                     threshold
                                   ).toFixed(6)
-                                : "â€”"}
+                                : "\u2014"}
 
                             </strong>
 
@@ -1066,7 +935,7 @@ function Dashboard() {
 
                                 {severityScore !== null
                                   ? severityScore.toFixed(2)
-                                  : "â€”"}
+                                  : "\u2014"}
 
                               </strong>
 
@@ -1294,7 +1163,7 @@ function Dashboard() {
                               <div className="explanation-title">
 
                                 <span className="explanation-icon">
-                                  âœ“
+                                  {"\u2713"}
                                 </span>
 
                                 Quality Check
@@ -1377,7 +1246,7 @@ function Dashboard() {
                               inspection.processing_time_seconds !==
                                 null
                                 ? `${inspection.processing_time_seconds}s`
-                                : "â€”"}
+                                : "\u2014"}
 
                             </strong>
 
